@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Rad.io</string>
+    <string name="stations">Stations</string>
+    <string name="now_playing">Now Playing</string>
+    <string name="settings">Settings</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_activity_import">ImportActivity</string>
+    <string name="import_web">web</string>
+    <string name="import_file">file</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="check_button">Check</string>
+    <string name="url_placeholder">https://</string>
+
+    <string name="section_format">Hello World from section: %1$d</string>
+
+</resources>

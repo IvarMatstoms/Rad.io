@@ -74,11 +74,16 @@ class BackgroundAudioService() : Service() {
 
         } else if (intent.action=="pause") {
             player?.pause()
+            getPlayer().playing=false
+        } else if (intent.action=="resume") {
+            station?.queue?.fastForward()
+            playTrack()
+
         }
 
         //we have some options for service
         //start sticky means service will be explicity started and stopped
-        return START_STICKY;
+        return START_REDELIVER_INTENT;
     }
 
     fun createMediaPlayer(uri: Uri):MediaPlayer {

@@ -14,6 +14,7 @@ import kotlinx.android.synthetic.main.fragment_now_playing.*
 import tech.ivar.ra.Station
 import android.graphics.BitmapFactory
 import android.graphics.Bitmap
+import android.widget.ImageButton
 import java.io.File
 
 
@@ -70,17 +71,32 @@ class NowPlayingFragment : Fragment() {
             }
 
         }
+        val pp = playerPause
+
+        if (getPlayer().playing) {
+            pp.setImageResource(R.drawable.ic_pause_black_24dp);
+        } else {
+            pp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
+        }
         playerPause.setOnClickListener(clickListener)
     }
 
     val clickListener = View.OnClickListener { view ->
         when (view.id) {
             R.id.playerPause -> {
-                Log.w("W", "Pause")
-                val intent: Intent = Intent(context, BackgroundAudioService::class.java)
-                intent.action = "pause"
-                context?.startService(intent)
-
+                val pp = playerPause
+                if (getPlayer().playing) {
+                    Log.w("W", "Pause")
+                    val intent: Intent = Intent(context, BackgroundAudioService::class.java)
+                    intent.action = "pause"
+                    context?.startService(intent)
+                    pp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
+                } else {
+                    val intent: Intent = Intent(context, BackgroundAudioService::class.java)
+                    intent.action = "resume"
+                    context?.startService(intent)
+                    pp.setImageResource(R.drawable.ic_pause_black_24dp);
+                }
             }
         }
     }

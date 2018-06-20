@@ -17,6 +17,11 @@ class Queue(var randomGen: RandomGen, val items: MutableList<QueueItem>, val sta
         } else {
             inputTime
         }
+        if (currentItem != null) {
+            if (currentItem!!.endTime > time) {
+                return
+            }
+        }
         while (true) {
             var item=nextItem()
             if (item.endTime > time) {

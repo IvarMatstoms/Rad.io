@@ -180,29 +180,40 @@ class StationsListAdapter(val context: Context,private val stations: Array<Stati
         // - replace the contents of the view with that element
         holder.listItem.findViewById<TextView>(R.id.stationListName).text = stations[position].name
         val id:String=stations[position].id
+        val slp=holder.listItem.findViewById<ImageButton>(R.id.stationListPlay)
+        val player= getPlayer()
+        var currentPlaying=false
+        if (player.playing) {
+            if (stations[position].id == player.station?.id) {
+                slp.setImageResource(R.drawable.ic_pause_black_24dp);
+                currentPlaying=true
+            }
+        }
         val clickListener = OnClickListener {view ->
             when (view.id) {
                 R.id.stationListPlay -> {
-                    getPlayer().play(context,id)
-                    val fragment = NowPlayingFragment()
-                    val fragmentTransaction = (context as MainActivity).getSupportFragmentManager().beginTransaction()
-                    fragmentTransaction.replace(R.id.fragmentContainer, fragment)
-                    fragmentTransaction.addToBackStack(null)
-                    fragmentTransaction.commit()
-                    val bottomNavigationView: BottomNavigationView =  (context as MainActivity).findViewById(navigation) as BottomNavigationView
-                    bottomNavigationView.selectedItemId = R.id.navigation_dashboard
+                    val p= getPlayer()
+                    if (!currentPlaying || !p.playing) {
+                        getPlayer().play(context, id)
+                        val fragment = NowPlayingFragment()
+                        val fragmentTransaction = (context as MainActivity).getSupportFragmentManager().beginTransaction()
+                        fragmentTransaction.replace(R.id.fragmentContainer, fragment)
+                        fragmentTransaction.addToBackStack(null)
+                        fragmentTransaction.commit()
+                        val bottomNavigationView: BottomNavigationView = (context as MainActivity).findViewById(navigation) as BottomNavigationView
+                        bottomNavigationView.selectedItemId = R.id.navigation_dashboard
+                    } else {
+                        val intent: Intent = Intent(context, BackgroundAudioService::class.java)
+                        intent.action = "pause"
+                        context?.startService(intent)
+                        slp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
+                    }
                 }
             }
 
         }
         holder.listItem.findViewById<ImageButton>(R.id.stationListPlay).setOnClickListener (clickListener)
-        val slp=holder.listItem.findViewById<ImageButton>(R.id.stationListPlay)
-        val player= getPlayer()
-        if (player.playing) {
-            if (stations[position].id == player.station?.id) {
-                slp.setImageResource(R.drawable.ic_pause_black_24dp);
-            }
-        }
+
     }
 
     // Return the size of your dataset (invoked by the layout manager)

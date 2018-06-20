@@ -19,7 +19,7 @@ fun loadRaFile(context: Context, id: String): Station {
     val station: Station = gson.fromJson(manifestString, object : TypeToken<Station>() {}.type);
     Log.w("R", station.toString())
     val queueItems: MutableList<QueueItem> = mutableListOf()
-
+    station.library.updateReferences()
     station.library.artists.forEach {
         it.albums.forEach {
             queueItems.addAll(it.tracks)

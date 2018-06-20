@@ -25,6 +25,7 @@
             android:parentActivityName=".MainActivity">
         </activity>
         <service android:name=".BackgroundAudioService" />
+
     </application>
 
 </manifest>

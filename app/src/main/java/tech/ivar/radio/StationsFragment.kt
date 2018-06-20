@@ -1,10 +1,13 @@
 package tech.ivar.radio
 
+import android.app.Activity
+import android.app.PendingIntent.getActivity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.support.constraint.ConstraintLayout
+import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -17,6 +20,8 @@ import android.widget.ImageButton
 import android.widget.TextView
 import kotlinx.android.synthetic.main.fragment_stations.*
 import tech.ivar.ra.loadRaFile
+import android.support.design.widget.BottomNavigationView
+import tech.ivar.radio.R.id.navigation
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -178,12 +183,26 @@ class StationsListAdapter(val context: Context,private val stations: Array<Stati
         val clickListener = OnClickListener {view ->
             when (view.id) {
                 R.id.stationListPlay -> {
-                    getPlayer().play(context,loadRaFile(context,id))
+                    getPlayer().play(context,id)
+                    val fragment = NowPlayingFragment()
+                    val fragmentTransaction = (context as MainActivity).getSupportFragmentManager().beginTransaction()
+                    fragmentTransaction.replace(R.id.fragmentContainer, fragment)
+                    fragmentTransaction.addToBackStack(null)
+                    fragmentTransaction.commit()
+                    val bottomNavigationView: BottomNavigationView =  (context as MainActivity).findViewById(navigation) as BottomNavigationView
+                    bottomNavigationView.selectedItemId = R.id.navigation_dashboard
                 }
             }
 
         }
         holder.listItem.findViewById<ImageButton>(R.id.stationListPlay).setOnClickListener (clickListener)
+        val slp=holder.listItem.findViewById<ImageButton>(R.id.stationListPlay)
+        val player= getPlayer()
+        if (player.playing) {
+            if (stations[position].id == player.station?.id) {
+                slp.setImageResource(R.drawable.ic_pause_black_24dp);
+            }
+        }
     }
 
     // Return the size of your dataset (invoked by the layout manager)

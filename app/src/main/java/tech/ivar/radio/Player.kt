@@ -1,36 +1,21 @@
 package tech.ivar.radio
 
 import android.content.Context
-import android.os.Handler
 import android.util.Log
 import tech.ivar.ra.Station
-import com.google.android.exoplayer2.ExoPlayerFactory
-import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
-import com.google.android.exoplayer2.trackselection.TrackSelector
-import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
-import com.google.android.exoplayer2.trackselection.TrackSelection
 import android.media.MediaPlayer
 import android.content.Intent
-import android.R.raw
-import android.app.IntentService
 import android.app.Service
-import android.media.AudioAttributes
-import android.media.AudioManager
 import android.os.IBinder
 import android.media.MediaPlayer.OnCompletionListener
 import android.net.Uri
-import android.os.Bundle
-import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory
-import com.google.android.exoplayer2.source.ExtractorMediaSource
-import com.google.android.exoplayer2.source.MediaSource
-import com.google.android.exoplayer2.upstream.FileDataSource.FileDataSourceException
-import com.google.android.exoplayer2.DefaultLoadControl
-import com.google.android.exoplayer2.upstream.*
-import com.google.android.exoplayer2.util.Util
+import android.os.Handler
+import tech.ivar.ra.loadRaFile
 
 
 class Player {
+    var station:Station?=null
+    var playing=false;
     init {
 
     }
@@ -39,35 +24,15 @@ class Player {
 
     }
 
-    fun play(context: Context, station: Station) {
-        //(0 .. 20).forEach {
-        //    Log.w("P",station.queue.nextItem().toString())
-        //}
-        val upcomingItem=station.queue.nextItem()
-        val trackUri:Uri=Uri.fromFile(station.getResFile(context, upcomingItem.item.getItems()[0].fileId))
-        // 1. Create a default TrackSelector
-        //val mediaPlayer:MediaPlayer = MediaPlayer.create(context,trackUri);
-        //mediaPlayer.start();
-        //MediaPlayer mediaPlayer = new MediaPlayer();
+    fun play(context: Context, stationId: String) {
+        //val upcomingItem=station.queue.nextItem()
+        //val trackUri:Uri=Uri.fromFile(station.getResFile(context, upcomingItem.item.getItems()[0].fileId))
+
         val intent:Intent=Intent(context, BackgroundAudioService::class.java)
-        intent.putExtra("firstTrackUri", trackUri.toString())
+        //intent.putExtra("firstTrackUri", trackUri.toString())
+        intent.putExtra("stationId", stationId)
+        intent.action="play"
         context.startService(intent)
-        //val mediaPlayer = MediaPlayer.create(context, trackUri)
-        //mediaPlayer.setAudioAttributes(AudioAttributes.CONTENT_TYPE_MUSIC);
-//mediaPlayer.setDataSource(context, trackUri);
-//mediaPlayer.prepare();
-//mediaPlayer.start();
-
-        //val exoPlayer = ExoPlayerFactory.newSimpleInstance(context, DefaultTrackSelector(null), DefaultLoadControl())
-        /*
-        val playbackServiceIntent = Intent(context, BackgroundAudioService::class.java)
-
-        //val bundle = Bundle()
-        //bundle.putString("firstTrack", uri.toString())
-        playbackServiceIntent.putExtra("firstTrackUri", uri.toString())
-        Log.w("U",uri.toString())
-        context.startService(playbackServiceIntent);
-        */
     }
 }
 
@@ -81,7 +46,9 @@ fun getPlayer():Player {
 }
 class BackgroundAudioService() : Service() {
     //creating a mediaplayer object
-    lateinit var player: MediaPlayer;
+    var player: MediaPlayer? = null;
+    var station: Station? = null;
+
 
     override fun onBind(intent: Intent): IBinder? {
 
@@ -91,78 +58,82 @@ class BackgroundAudioService() : Service() {
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         //getting systems default ringtone
-        val url: Uri=Uri.parse(intent.getStringExtra("firstTrackUri"))
-        player = MediaPlayer.create(this,
-                url);
-        //setting loop play to true
-        //this will make the ringtone continuously playing
-        //player.setLooping(true);
+        Log.w("A",intent.action)
+        if (intent.action == "play") {
+            val stationId:String = intent.getStringExtra("stationId")
+            station= loadRaFile(this, stationId)
+            getPlayer().station=station
+            station?.queue?.fastForward()
+            playTrack()
+            //player = MediaPlayer.create(this);
+            //setting loop play to true
+            //this will make the ringtone continuously playing
+            //player.setLooping(true);
 
-        //staring the player
-        player.start();
+            //staring the player
+
+        } else if (intent.action=="pause") {
+            player?.pause()
+        }
 
         //we have some options for service
         //start sticky means service will be explicity started and stopped
         return START_STICKY;
     }
 
+    fun createMediaPlayer(uri: Uri):MediaPlayer {
+        val p = MediaPlayer.create(this, uri);
+        p.setOnCompletionListener(OnCompletionListener {
+            Log.w("P","DONE!")
+            playNext()
+        })
+        return p
+    }
+
+    fun playNext() {
+        station?.queue?.nextItem()
+        playTrack()
+    }
+
+    fun playTrack() {
+        Log.w("DAB",station!!.queue.currentItem.toString())
+        val nextItem=station!!.queue.currentItem
+        val nextTrack=nextItem?.item?.getItems()!![0]
+        val fileUri:Uri?= Uri.fromFile(station?.getResFile(this, nextTrack.fileId))
+        if (player == null) {
+            player= createMediaPlayer(fileUri!!)
+
+        } else {
+            player?.reset()
+            player?.setDataSource(this, fileUri)
+
+            player?.prepare()
+        }
+        //player?.seekTo(60)
+
+
+        val offset=System.currentTimeMillis()-nextItem?.startTime*1000L
+        if (offset > 0) {
+            player?.start();
+            player?.seekTo(offset.toInt())
+
+        } else {
+            val handler = Handler()
+            handler.postDelayed(Runnable {
+                //Do something after 100ms
+                player?.start();
+            }, Math.abs(offset))
+        }
+        getPlayer().playing=true
+        //player?.start();
+    }
+
 
     override fun onDestroy() {
         Log.w("P","STOP")
-        if (player.isPlaying) {
-            player.stop()
+        if (player != null && player?.isPlaying!!) {
+            player?.stop()
         }
-        player.release()
+        player?.release()
     }
 }
-/*
-class BackgroundAudioService() : Service(), OnCompletionListener {
-
-
-    lateinit var mediaPlayer: MediaPlayer
-    lateinit var firstTrackUri: Uri
-
-    init {
-        Log.w("P","INIT")
-    }
-
-    override fun onBind(intent: Intent): IBinder? {
-
-        Log.w("P","BIND")
-        return null
-    }
-
-    override fun onCreate() {
-
-    }
-
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.w("P","CREATE")
-        firstTrackUri = Uri.parse(intent.getStringExtra("firstTrackUri"))
-        mediaPlayer = MediaPlayer.create(this, firstTrackUri)// raw/s.mp3
-        mediaPlayer.prepareAsync();
-
-        mediaPlayer.setOnCompletionListener(this)
-
-        if (!mediaPlayer.isPlaying) {
-            mediaPlayer.start()
-        }
-        Log.w("P","START")
-        return START_STICKY
-    }
-
-    override fun onDestroy() {
-        Log.w("P","STOP")
-        if (mediaPlayer.isPlaying) {
-            mediaPlayer.stop()
-        }
-        mediaPlayer.release()
-    }
-
-    override fun onCompletion(_mediaPlayer: MediaPlayer) {
-        Log.w("P","STOP")
-        stopSelf()
-    }
-
-}
-*/

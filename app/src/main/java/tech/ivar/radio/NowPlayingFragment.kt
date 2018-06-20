@@ -1,12 +1,20 @@
 package tech.ivar.radio
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import kotlinx.android.synthetic.main.fragment_import_web.*
+import kotlinx.android.synthetic.main.fragment_now_playing.*
+import tech.ivar.ra.Station
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
+import java.io.File
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -41,6 +49,40 @@ class NowPlayingFragment : Fragment() {
                               savedInstanceState: Bundle?): View? {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_now_playing, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val station: Station? = getPlayer().station
+        if (station != null) {
+            nowPlayingStation.text = station.name
+
+            val currentItem = station.queue.currentItem?.item?.getItems()!![0]
+            nowPlayingTrack.text = currentItem.name
+            nowPlayingAlbum.text = currentItem.album.name
+            nowPlayingArtist.text = currentItem.artist.name
+            context?.let {
+                val imageFile: File = station.getResFile(it, station.imageFileId)
+                val myBitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath())
+
+                val myImage = nowPlayingImage
+
+                myImage.setImageBitmap(myBitmap)
+            }
+
+        }
+        playerPause.setOnClickListener(clickListener)
+    }
+
+    val clickListener = View.OnClickListener { view ->
+        when (view.id) {
+            R.id.playerPause -> {
+                Log.w("W", "Pause")
+                val intent: Intent = Intent(context, BackgroundAudioService::class.java)
+                intent.action = "pause"
+                context?.startService(intent)
+
+            }
+        }
     }
 
     // TODO: Rename method, update argument and hook method into UI event

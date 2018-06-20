@@ -17,6 +17,13 @@ class Queue(var randomGen: RandomGen, val items: MutableList<QueueItem>, val sta
         } else {
             inputTime
         }
+        while (true) {
+            var item=nextItem()
+            if (item.endTime > time) {
+                break
+            }
+        }
+
     }
 
     fun nextItem():UpcomingItem{
@@ -51,7 +58,7 @@ class Queue(var randomGen: RandomGen, val items: MutableList<QueueItem>, val sta
         val currentTime:Int = if (currentItem == null ) {
             startTime
         } else {
-            currentItem?.endTime!!
+            currentItem?.endTime!!+1
         }
         val upcomingItem=UpcomingItem(items.get(newIndex), currentTime)
         currentIndex=newIndex

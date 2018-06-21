@@ -1,5 +1,9 @@
 package tech.ivar.radio
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.support.design.widget.TabLayout
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
@@ -9,6 +13,7 @@ import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentPagerAdapter
 import android.support.v4.view.ViewPager
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
@@ -29,7 +34,7 @@ class ImportActivity : AppCompatActivity() {
      * [android.support.v4.app.FragmentStatePagerAdapter].
      */
     private var mSectionsPagerAdapter: SectionsPagerAdapter? = null
-
+    lateinit var currentFragment:Fragment
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_import)
@@ -80,7 +85,7 @@ class ImportActivity : AppCompatActivity() {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
             //return PlaceholderFragment.newInstance(position + 1)
-            return when(position) {
+            val fragment=when(position) {
                 0 -> {
                     ImportWebFragment.newInstance("","")
                 }
@@ -89,6 +94,8 @@ class ImportActivity : AppCompatActivity() {
                 }
                 else -> null
             }
+            currentFragment=fragment!!
+            return fragment
         }
 
         override fun getCount(): Int {

@@ -2,8 +2,10 @@ package tech.ivar.radio
 
 import android.app.Activity
 import android.app.PendingIntent.getActivity
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
 import android.support.constraint.ConstraintLayout
@@ -23,7 +25,7 @@ import tech.ivar.ra.loadRaFile
 import android.support.design.widget.BottomNavigationView
 import tech.ivar.radio.R.id.navigation
 
-
+val STATIONS_FRAGMENT_ACTION= "tech.ivar.radio.stationsfragment.action"
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
@@ -54,6 +56,9 @@ class StationsFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(STATIONS_FRAGMENT_ACTION)
+        activity?.registerReceiver(StationsFragmentBroadcastReceiver(), intentFilter)
 
 
 
@@ -65,7 +70,6 @@ class StationsFragment : Fragment() {
             R.id.fabImport -> {
                 Log.w("W","Fab press")
                 val intent = Intent(activity, ImportActivity::class.java)
-
                         .apply {
 
                         }
@@ -93,6 +97,7 @@ class StationsFragment : Fragment() {
             adapter = viewAdapter
 
         }
+
     }
 
 
@@ -218,4 +223,17 @@ class StationsListAdapter(val context: Context,private val stations: Array<Stati
 
     // Return the size of your dataset (invoked by the layout manager)
     override fun getItemCount() = stations.size
+}
+
+class StationsFragmentBroadcastReceiver: BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        Log.w("Q","HI!!!")
+        val status=intent.getStringExtra("status");
+        if (status=="update") {
+            Log.w("U","UPDATE!!")
+            //((context as ImportActivity).currentFragment as ImportWebFragment).showStatusBar()
+
+        }
+    }
+
 }

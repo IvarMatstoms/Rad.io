@@ -83,7 +83,8 @@ class BackgroundAudioService() : Service() {
 
         //we have some options for service
         //start sticky means service will be explicity started and stopped
-        return START_REDELIVER_INTENT;
+        //return START_REDELIVER_INTENT;
+        return START_NOT_STICKY
     }
 
     fun createMediaPlayer(uri: Uri):MediaPlayer {

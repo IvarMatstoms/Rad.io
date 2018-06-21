@@ -1,5 +1,6 @@
 package tech.ivar.radio
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -10,9 +11,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.fragment_import_web.*
-import kotlinx.android.synthetic.main.fragment_stations.*
+import android.content.IntentFilter
 
 
+
+val IMPORTWEB_STATUSBAR_ACTION = "tech.ivar.radio.importweb.statusbar"
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
@@ -39,6 +42,10 @@ class ImportWebFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
+        //val intentFilter = IntentFilter()
+        //intentFilter.addAction(IMPORTWEB_STATUSBAR_ACTION)
+        //activity?.registerReceiver(ImportWebBroadcastReceiver(), intentFilter)
+
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -50,13 +57,24 @@ class ImportWebFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         importWebCheckButton.setOnClickListener(clickListener)
     }
+
+    fun showStatusBar() {
+        importWebProgress.visibility=View.VISIBLE
+    }
+
     val clickListener = View.OnClickListener { view ->
         when (view.id) {
             R.id.importWebCheckButton -> {
                 val url:String=importWebUrl.text.toString()
                 Log.w("W", "Check press")
                 Log.w("W",url)
-                getStationIndex().downloadFile(activity as Context,url)
+                getStationIndex().fromUrl(activity as Context,url)
+
+                val intent = Intent(activity, MainActivity::class.java)
+                        .apply {
+
+                        }
+                startActivity(intent)
 
             }
         }
@@ -118,3 +136,16 @@ class ImportWebFragment : Fragment() {
                 }
     }
 }
+/*
+class ImportWebBroadcastReceiver: BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        Log.w("Q","HI!!!")
+        val status=intent.getStringExtra("status");
+        if (status=="show") {
+            ((context as ImportActivity).currentFragment as ImportWebFragment).showStatusBar()
+
+        }
+    }
+
+}
+        */

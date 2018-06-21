@@ -13,7 +13,12 @@
 
     <string name="check_button">Check</string>
     <string name="url_placeholder">https://</string>
+    <string name="cancel">Cancel</string>
 
     <string name="section_format">Hello World from section: %1$d</string>
+
+    <string name="dchannel_name">Rad.io downloading</string>
+    <string name="dchannel_description">Rad.io downloading notifications</string>
+
 
 </resources>

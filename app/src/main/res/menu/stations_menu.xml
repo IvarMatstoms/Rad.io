@@ -1,0 +1,10 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="tech.ivar.radio.MainActivity">
+    <item
+        android:id="@+id/stationsMenuEdit"
+        android:orderInCategory="100"
+        android:title="@string/stations_menu_edit"
+        app:showAsAction="never" />
+</menu>

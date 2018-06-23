@@ -26,7 +26,7 @@ import java.lang.Compiler.command
 import java.util.concurrent.*
 import javax.xml.datatype.DatatypeConstants.SECONDS
 
-val NOWPLAYING_FRAGMENT_ACTION= "tech.ivar.radio.nowplayingfragment.action"
+val NOWPLAYING_FRAGMENT_ACTION = "tech.ivar.radio.nowplayingfragment.action"
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
@@ -46,8 +46,8 @@ class NowPlayingFragment : Fragment() {
     private var param1: String? = null
     private var param2: String? = null
     private var listener: OnFragmentInteractionListener? = null
-    private var currentItem: UpcomingItem?=null
-    private var currentStation: Station?=null
+    private var currentItem: UpcomingItem? = null
+    private var currentStation: Station? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +55,9 @@ class NowPlayingFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(NOWPLAYING_FRAGMENT_ACTION)
+        activity?.registerReceiver(nowPlayingBroadcastReceiver, intentFilter)
         /*
         val intentFilter = IntentFilter()
         intentFilter.addAction(NOWPLAYING_FRAGMENT_ACTION)
@@ -84,41 +87,44 @@ class NowPlayingFragment : Fragment() {
             }
 
         }
-        val pp = playerPause
-
+        //val pp = playerPause
+        updateButton()
+        /*
         if (getPlayer().playing) {
             pp.setImageResource(R.drawable.ic_pause_black_24dp);
         } else {
             pp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
         }
+        */
         playerPause.setOnClickListener(clickListener)
         val mHandler = Handler()
 //Make sure you update Seekbar on UI thread
-        val player= getPlayer()
+        val player = getPlayer()
         activity?.runOnUiThread(object : Runnable {
-            fun formatSec(sec:Int):String {
-                val m=String.format ("%02d", sec/60)
-                val s=String.format ("%02d", sec%60)
+            fun formatSec(sec: Int): String {
+                val m = String.format("%02d", sec / 60)
+                val s = String.format("%02d", sec % 60)
                 return "$m:$s"
             }
+
             override fun run() {
 
                 if (player.station?.queue?.currentItem != currentItem) {
-                    currentItem=player.station?.queue?.currentItem
-                    val ci=currentItem?.item?.getItems()!![0]
+                    currentItem = player.station?.queue?.currentItem
+                    val ci = currentItem?.item?.getItems()!![0]
                     nowPlayingTrack?.text = ci.name
                     nowPlayingAlbum?.text = ci.album.name
                     nowPlayingArtist?.text = ci.artist.name
-                    nowPlayingProgress?.max=ci.length
-                    nowPlayingLength?.text=formatSec(ci.length)
+                    nowPlayingProgress?.max = ci.length
+                    nowPlayingLength?.text = formatSec(ci.length)
                 }
                 if (player.playing) {
                     //val progress:Int=mPlayer.
-                    if (player.currentProgress!=null) {
+                    if (player.currentProgress != null) {
                         //val p=(((player.currentProgress!!.toFloat()/1000)/player.station?.queue?.currentItem?.item?.getItems()!![0].length.toFloat())*100).toInt()
-                        val p=player.currentProgress!!.toInt()/1000
+                        val p = player.currentProgress!!.toInt() / 1000
                         nowPlayingProgress?.progress = p
-                        nowPlayingCurrent?.text=formatSec(p)
+                        nowPlayingCurrent?.text = formatSec(p)
                         //Log.w("P",p.toString())
                     }
                 }
@@ -126,7 +132,7 @@ class NowPlayingFragment : Fragment() {
                 if (currentStation != player.station && player.station != null && nowPlayingStation != null) {
                     context?.let {
                         nowPlayingStation.text = player.station!!.name
-                        currentStation=player.station
+                        currentStation = player.station
                         val imageFile: File = player.station!!.getResFile(it, player.station!!.imageFileId)
                         val myBitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath())
 
@@ -142,6 +148,14 @@ class NowPlayingFragment : Fragment() {
             }
         })
 
+    }
+
+    private fun updateButton() {
+        if (getPlayer().playing) {
+            playerPause?.setImageResource(R.drawable.ic_pause_black_24dp);
+        } else {
+            playerPause?.setImageResource(R.drawable.ic_play_arrow_black_24dp);
+        }
     }
 
 
@@ -164,6 +178,47 @@ class NowPlayingFragment : Fragment() {
             }
         }
     }
+
+    private val nowPlayingBroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val status = intent.getStringExtra("status")
+            Log.w("H", "now playing")
+            if (status == "update_button") {
+                updateButton()
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        //Log.w("R","unregD")
+        //LocalBroadcastManager.getInstance(activity!!).unregisterReceiver(stationsBroadcastReceiver)
+        try {
+            activity?.unregisterReceiver(nowPlayingBroadcastReceiver)
+        } catch (e: IllegalArgumentException) {
+
+        }
+
+        super.onDestroyView()
+    }
+
+    override fun onPause() {
+        // Unregister since the activity is paused.
+        //Log.w("R","unregP")
+        activity?.unregisterReceiver(
+                nowPlayingBroadcastReceiver)
+        super.onPause()
+    }
+
+    override fun onResume() {
+        // Register to receive messages.
+        // We are registering an observer (mMessageReceiver) to receive Intents
+        // with actions named "custom-event-name".
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(NOWPLAYING_FRAGMENT_ACTION)
+        activity?.registerReceiver(nowPlayingBroadcastReceiver, intentFilter)
+        super.onResume()
+    }
+
 
     // TODO: Rename method, update argument and hook method into UI event
     fun onButtonPressed(uri: Uri) {

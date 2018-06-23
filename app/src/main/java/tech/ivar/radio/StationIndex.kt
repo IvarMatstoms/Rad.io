@@ -92,6 +92,7 @@ class DownloaderService() : Service() {
         intent.action = STATIONS_FRAGMENT_ACTION
         intent.putExtra("status", "reload")
         sendBroadcast(intent)
+
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {

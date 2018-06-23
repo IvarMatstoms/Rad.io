@@ -135,7 +135,7 @@ class NowPlayingFragment : Fragment() {
                     nowPlayingTrack?.text = ci.name
                     nowPlayingAlbum?.text = ci.album.name
                     nowPlayingArtist?.text = ci.artist.name
-                    nowPlayingProgress.max=ci.length
+                    nowPlayingProgress?.max=ci.length
                 }
                 if (player.playing) {
                     //val progress:Int=mPlayer.

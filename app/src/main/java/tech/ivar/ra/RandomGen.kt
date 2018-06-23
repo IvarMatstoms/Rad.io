@@ -1,5 +1,6 @@
 package tech.ivar.ra
 
+import android.util.Log
 import kotlin.math.pow
 
 class RandomGen(seed:Long) {
@@ -15,6 +16,7 @@ class RandomGen(seed:Long) {
     fun next():Double {
         //self.n=(self.a*self.n+self.c)%self.m
         //return self.n/self.m
+
         n=(a*n+c)%m
         return n.toDouble()/m.toDouble()
     }

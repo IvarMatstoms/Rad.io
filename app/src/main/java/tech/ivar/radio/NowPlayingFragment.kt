@@ -47,7 +47,7 @@ class NowPlayingFragment : Fragment() {
     private var param2: String? = null
     private var listener: OnFragmentInteractionListener? = null
     private var currentItem: UpcomingItem?=null
-    var exec: ScheduledExecutorService?=null
+    private var currentStation: Station?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,7 +70,7 @@ class NowPlayingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val station: Station? = getPlayer().station
         if (station != null) {
-            nowPlayingStation.text = station.name
+            //nowPlayingStation.text = station.name
 
             //val currentItem = station.queue.currentItem?.item?.getItems()!![0]
 
@@ -92,41 +92,15 @@ class NowPlayingFragment : Fragment() {
             pp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
         }
         playerPause.setOnClickListener(clickListener)
-        /*var mHandler: Handler = object : Handler() {
-            override fun handleMessage(msg: Message) {
-
-            }
-        }*/
-        /*
-
-        val player= getPlayer()
-        exec = Executors.newSingleThreadScheduledExecutor()
-        exec?.scheduleAtFixedRate(
-                {
-                    if (player.station?.queue?.currentItem != currentItem) {
-                        currentItem=player.station?.queue?.currentItem
-                        val ci=currentItem?.item?.getItems()!![0]
-                        nowPlayingTrack?.text = ci.name
-                        nowPlayingAlbum?.text = ci.album.name
-                        nowPlayingArtist?.text = ci.artist.name
-                    }
-                    if (player.playing) {
-                        //val progress:Int=mPlayer.
-                        if (player.currentProgress!=null) {
-                            val p=(((player.currentProgress!!.toFloat()/1000)/player.station?.queue?.currentItem?.item?.getItems()!![0].length.toFloat())*100).toInt()
-                            nowPlayingProgress?.progress = p
-                            //Log.w("P",p.toString())
-                        }
-                    }
-                }
-
-                , 0, 1000, TimeUnit.MILLISECONDS)
-                */
         val mHandler = Handler()
 //Make sure you update Seekbar on UI thread
         val player= getPlayer()
         activity?.runOnUiThread(object : Runnable {
-
+            fun formatSec(sec:Int):String {
+                val m=String.format ("%02d", sec/60)
+                val s=String.format ("%02d", sec%60)
+                return "$m:$s"
+            }
             override fun run() {
 
                 if (player.station?.queue?.currentItem != currentItem) {
@@ -136,6 +110,7 @@ class NowPlayingFragment : Fragment() {
                     nowPlayingAlbum?.text = ci.album.name
                     nowPlayingArtist?.text = ci.artist.name
                     nowPlayingProgress?.max=ci.length
+                    nowPlayingLength?.text=formatSec(ci.length)
                 }
                 if (player.playing) {
                     //val progress:Int=mPlayer.
@@ -143,51 +118,32 @@ class NowPlayingFragment : Fragment() {
                         //val p=(((player.currentProgress!!.toFloat()/1000)/player.station?.queue?.currentItem?.item?.getItems()!![0].length.toFloat())*100).toInt()
                         val p=player.currentProgress!!.toInt()/1000
                         nowPlayingProgress?.progress = p
+                        nowPlayingCurrent?.text=formatSec(p)
                         //Log.w("P",p.toString())
                     }
                 }
+
+                if (currentStation != player.station && player.station != null && nowPlayingStation != null) {
+                    context?.let {
+                        nowPlayingStation.text = player.station!!.name
+                        currentStation=player.station
+                        val imageFile: File = player.station!!.getResFile(it, player.station!!.imageFileId)
+                        val myBitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath())
+
+                        val myImage = nowPlayingImage
+
+                        myImage.setImageBitmap(myBitmap)
+                    }
+                }
+                /*
+
+                */
                 mHandler.postDelayed(this, 1000)
             }
         })
 
-        /*
-        val timer = Timer()
-        timer.scheduleAtFixedRate(object : TimerTask() {
-
-            override fun run() {
-
-            }
-
-        }, 0, 1000)
-        */
-
-    }
-    override fun onDestroyView() {
-        //Log.w("R","unregD")
-        //LocalBroadcastManager.getInstance(activity!!).unregisterReceiver(stationsBroadcastReceiver)
-        /*try {
-            activity?.unregisterReceiver(nowPlayingBroadcastReceiver)
-        } catch (e: IllegalArgumentException) {
-
-        }*/
-
-        super.onDestroyView()
     }
 
-
-
-/*
-    private val nowPlayingBroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val status=intent.getStringExtra("status")
-            Log.w("H","NPBR")
-            if (status=="update") {
-
-
-            }
-        }
-    }
-    */
 
     val clickListener = View.OnClickListener { view ->
         when (view.id) {

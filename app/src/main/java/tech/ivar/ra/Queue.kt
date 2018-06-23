@@ -1,5 +1,7 @@
 package tech.ivar.ra
 
+import android.util.Log
+
 class Queue(var randomGen: RandomGen, val items: MutableList<QueueItem>, val startTime: Int) {
     var currentItem:UpcomingItem?=null
     var currentIndex:Int?=null
@@ -66,6 +68,7 @@ class Queue(var randomGen: RandomGen, val items: MutableList<QueueItem>, val sta
         } else {
             currentItem?.endTime!!+1
         }
+        //Log.w("U",newIndex.toString())
         val upcomingItem=UpcomingItem(items.get(newIndex), currentTime)
         currentIndex=newIndex
         currentItem=upcomingItem

@@ -1,5 +1,8 @@
 package tech.ivar.radio
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.RemoteInput
 import android.content.Context
 import android.util.Log
 import tech.ivar.ra.Station
@@ -9,11 +12,18 @@ import android.app.Service
 import android.os.IBinder
 import android.media.MediaPlayer.OnCompletionListener
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
+import android.support.v4.app.NotificationCompat
+import android.support.v4.app.NotificationManagerCompat
 import tech.ivar.ra.loadRaFile
 import java.util.*
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 
-
+val PLAYER_SERVICE_ACTION= "tech.ivar.radio.playerservice.action"
+private const val CHANNEL_ID = "tech.ivar.radio.pchannel"
 class Player {
     var station:Station?=null
     var playing=false;
@@ -51,7 +61,7 @@ class BackgroundAudioService() : Service() {
     //creating a mediaplayer object
     var mPlayer: MediaPlayer? = null;
     var station: Station? = null;
-
+    val notification: PlayerNotification
 
     override fun onBind(intent: Intent): IBinder? {
 
@@ -60,6 +70,8 @@ class BackgroundAudioService() : Service() {
     }
 
     init {
+        notification=PlayerNotification()
+        notification.create(this)
         val timer = Timer()
         val player=getPlayer()
         timer.scheduleAtFixedRate(object : TimerTask() {
@@ -67,21 +79,20 @@ class BackgroundAudioService() : Service() {
             override fun run() {
                 if (player.playing && mPlayer?.currentPosition != null) {
                     player.currentProgress=mPlayer?.currentPosition
-                    /*
-                    val intent = Intent()
-                    intent.action = NOWPLAYING_FRAGMENT_ACTION
-                    intent.putExtra("status", "update")
-                    //val currentItem=
-                    intent.putExtra("track")
-                    sendBroadcast(intent)
-                    //
-                            //FUCK
-                            */
                 }
             }
 
         }, 0, 1000)
     }
+
+    override fun onCreate() {
+        super.onCreate()
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(PLAYER_SERVICE_ACTION)
+        this.registerReceiver(playerBroadcastReceiver, intentFilter)
+    }
+
+
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
 
@@ -102,17 +113,37 @@ class BackgroundAudioService() : Service() {
 
         } else if (intent.action=="pause") {
             mPlayer?.pause()
+            notification.update(this)
             getPlayer().playing=false
         } else if (intent.action=="resume") {
             station?.queue?.fastForward()
             playTrack()
-
+            notification.update(this)
         }
 
         //we have some options for service
         //start sticky means service will be explicity started and stopped
         //return START_REDELIVER_INTENT;
         return START_NOT_STICKY
+    }
+    private val playerBroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val status=intent.getStringExtra("status")
+            Log.w("H",status)
+            if (status=="toggle") {
+                if (getPlayer().playing) {
+                    mPlayer?.pause()
+                    getPlayer().playing = false
+                } else {
+                    station?.queue?.fastForward()
+                    playTrack()
+                }
+                notification.update(this@BackgroundAudioService)
+                Log.w("N","NPAUSE")
+            } else if (status=="resume") {
+
+            }
+        }
     }
 
 
@@ -161,15 +192,89 @@ class BackgroundAudioService() : Service() {
             }, Math.abs(offset))
         }
         getPlayer().playing=true
+        notification.update(this)
         //mPlayer?.start();
     }
 
 
     override fun onDestroy() {
         Log.w("P","STOP")
+        notification.destroy(this)
         if (mPlayer != null && mPlayer?.isPlaying!!) {
             mPlayer?.stop()
         }
         mPlayer?.release()
+        try {
+            this.unregisterReceiver(playerBroadcastReceiver)
+        } catch (e: IllegalArgumentException) {
+
+        }
+    }
+}
+class PlayerNotification {
+    var mBuilder: NotificationCompat.Builder?=null
+    var title:String=""
+    var text:String=""
+    var ongoing:Boolean=true
+
+    init {
+
+    }
+
+    fun create(context:Context) {
+        createNotificationChannel(context)
+        //update(context)
+    }
+
+    private fun createNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = context.getString(R.string.pchannel_name)
+            val description = context.getString(R.string.pchannel_description)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(CHANNEL_ID, name, importance)
+            channel.description = description
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            notificationManager!!.createNotificationChannel(channel)
+        }
+    }
+
+
+
+    fun update (context: Context) {
+        val player= getPlayer()
+        val station=player.station
+        val item= player.station?.queue?.currentItem?.item?.getItems()?.get(0)
+        title=if (item!=null) {item.name} else {""}
+        text=if (station!=null) {station.name}else{""}
+
+        //val intent: Intent = Intent(context, BackgroundAudioService::class.java)
+        //intent.action = "pause"
+        val intent = Intent()
+        intent.action = PLAYER_SERVICE_ACTION
+        intent.putExtra("status", "toggle")
+
+        val buttonText:String=if (player.playing) {"pause"} else {"play"}
+        //sendBroadcast(intent)
+        val pendingPauseIntent = PendingIntent.getBroadcast(context, 101, intent, 0)
+
+        //title=item
+        mBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_radio_black_24dp)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setOngoing(ongoing)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                //.setContentIntent(pendingIntent)
+                .addAction(R.drawable.ic_pause_black_24dp, buttonText,
+                        pendingPauseIntent);
+        val notificationManager = NotificationManagerCompat.from(context)
+
+        notificationManager.notify(2, mBuilder!!.build())
+    }
+
+    fun destroy(context: Context) {
+        NotificationManagerCompat.from(context).cancel(2)
     }
 }

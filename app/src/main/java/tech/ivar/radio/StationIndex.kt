@@ -19,7 +19,7 @@ import android.os.Build
 import android.support.v4.app.NotificationManagerCompat
 
 
-const val CHANNEL_ID = "tech.ivar.radio.dchannel"
+private const val CHANNEL_ID = "tech.ivar.radio.dchannel"
 
 
 class StationIndex {
@@ -41,6 +41,7 @@ class StationIndex {
         val file = context.openFileInput("index.json")
         val stationsString = String(file.readBytes())
         stations = gson.fromJson(stationsString, object : TypeToken<List<StationReference>>() {}.type);
+
     }
 
     fun fromUrl(context: Context, url: String) {
@@ -134,6 +135,7 @@ class DownloaderService() : Service() {
 
     fun notificationCreate() {
         notification= DownloadNotification()
+        notification!!.create(this)
         notification?.text="Downloading station"
         notification?.update(this)
 
@@ -165,19 +167,7 @@ class DownloaderService() : Service() {
     }
 
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.dchannel_name)
-            val description = getString(R.string.dchannel_description)
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, name, importance)
-            channel.description = description
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager!!.createNotificationChannel(channel)
-        }
-    }
+
 
     fun downloadFolder(url_: String) {
         fun getTextFile(url: String): String? {
@@ -365,8 +355,23 @@ class DownloadNotification {
     private var _progress:Int=0
     var showProgress:Boolean=false
 
-    init {
+    init{
 
+
+    }
+
+    private fun createNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = context.getString(R.string.dchannel_name)
+            val description = context.getString(R.string.dchannel_description)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(CHANNEL_ID, name, importance)
+            channel.description = description
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            notificationManager!!.createNotificationChannel(channel)
+        }
     }
 
     var progress: Int
@@ -381,7 +386,7 @@ class DownloadNotification {
         ongoing=true
         _progress=0
         showProgress=false
-
+        createNotificationChannel(context)
     }
 
 

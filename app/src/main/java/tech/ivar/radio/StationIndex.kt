@@ -49,14 +49,6 @@ class StationIndex {
         intent.putExtra("url", url)
         intent.action = "download"
         context.startService(intent)
-        /*       url.httpGet().response{request, response, result   ->
-
-                   val (bytes, error) = result
-                   if (bytes != null) {
-                       //println(bytes)
-                       addStationRa(context,bytes)
-                   }
-               }*/
     }
 
     fun downloadFolder() {
@@ -85,10 +77,19 @@ class DownloaderService() : Service() {
         return null
     }
 
-    fun broadcastUpdate() {
+    fun broadcastUpdate(status:String) {
+        Log.w("U","UPDATE SENT")
+        val intent = Intent()
+        intent.action = MAIN_ACTIVITY_ACTION
+        intent.putExtra("status", status)
+        sendBroadcast(intent)
+    }
+
+    private fun reloadStationsList () {
+        Log.w("U","UPDATE SENT")
         val intent = Intent()
         intent.action = STATIONS_FRAGMENT_ACTION
-        intent.putExtra("status", "update")
+        intent.putExtra("status", "reload")
         sendBroadcast(intent)
     }
 
@@ -99,12 +100,14 @@ class DownloaderService() : Service() {
             if (url.endsWith(".ra")) {
                 thread {
                     downloadRa(url)
-                    broadcastUpdate()
+                    broadcastUpdate("download_done")
+                    reloadStationsList()
                 }
             } else {
                 thread {
                     downloadFolder(url)
-                    broadcastUpdate()
+                    broadcastUpdate("download_done")
+                    reloadStationsList()
                 }
             }
         }
@@ -162,7 +165,6 @@ class DownloaderService() : Service() {
     }
 
 
-
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = getString(R.string.dchannel_name)
@@ -192,7 +194,7 @@ class DownloaderService() : Service() {
         fun abort(error: String) {
             notificationDone()
             notificationText("Download failed: $error")
-
+            broadcastUpdate("download_failed")
         }
 
         var uniqueID = UUID.randomUUID().toString()
@@ -201,7 +203,6 @@ class DownloaderService() : Service() {
 
         notificationCreate()
         notificationStatus("Downloading manifest")
-        notificationProgress(33)
         val url: String = if (url_.endsWith("/")) {
             url_
         } else {

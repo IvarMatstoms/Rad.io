@@ -1,7 +1,9 @@
 package tech.ivar.radio
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.Fragment
@@ -14,10 +16,17 @@ import kotlinx.android.synthetic.main.fragment_now_playing.*
 import tech.ivar.ra.Station
 import android.graphics.BitmapFactory
 import android.graphics.Bitmap
+import android.os.Handler
+import android.os.Message
 import android.widget.ImageButton
+import tech.ivar.ra.UpcomingItem
 import java.io.File
+import java.util.*
+import java.lang.Compiler.command
+import java.util.concurrent.*
+import javax.xml.datatype.DatatypeConstants.SECONDS
 
-
+val NOWPLAYING_FRAGMENT_ACTION= "tech.ivar.radio.nowplayingfragment.action"
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
@@ -37,6 +46,8 @@ class NowPlayingFragment : Fragment() {
     private var param1: String? = null
     private var param2: String? = null
     private var listener: OnFragmentInteractionListener? = null
+    private var currentItem: UpcomingItem?=null
+    var exec: ScheduledExecutorService?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +55,10 @@ class NowPlayingFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
+        /*
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(NOWPLAYING_FRAGMENT_ACTION)
+        activity?.registerReceiver(nowPlayingBroadcastReceiver, intentFilter)*/
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -57,10 +72,8 @@ class NowPlayingFragment : Fragment() {
         if (station != null) {
             nowPlayingStation.text = station.name
 
-            val currentItem = station.queue.currentItem?.item?.getItems()!![0]
-            nowPlayingTrack.text = currentItem.name
-            nowPlayingAlbum.text = currentItem.album.name
-            nowPlayingArtist.text = currentItem.artist.name
+            //val currentItem = station.queue.currentItem?.item?.getItems()!![0]
+
             context?.let {
                 val imageFile: File = station.getResFile(it, station.imageFileId)
                 val myBitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath())
@@ -79,7 +92,102 @@ class NowPlayingFragment : Fragment() {
             pp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
         }
         playerPause.setOnClickListener(clickListener)
+        /*var mHandler: Handler = object : Handler() {
+            override fun handleMessage(msg: Message) {
+
+            }
+        }*/
+        /*
+
+        val player= getPlayer()
+        exec = Executors.newSingleThreadScheduledExecutor()
+        exec?.scheduleAtFixedRate(
+                {
+                    if (player.station?.queue?.currentItem != currentItem) {
+                        currentItem=player.station?.queue?.currentItem
+                        val ci=currentItem?.item?.getItems()!![0]
+                        nowPlayingTrack?.text = ci.name
+                        nowPlayingAlbum?.text = ci.album.name
+                        nowPlayingArtist?.text = ci.artist.name
+                    }
+                    if (player.playing) {
+                        //val progress:Int=mPlayer.
+                        if (player.currentProgress!=null) {
+                            val p=(((player.currentProgress!!.toFloat()/1000)/player.station?.queue?.currentItem?.item?.getItems()!![0].length.toFloat())*100).toInt()
+                            nowPlayingProgress?.progress = p
+                            //Log.w("P",p.toString())
+                        }
+                    }
+                }
+
+                , 0, 1000, TimeUnit.MILLISECONDS)
+                */
+        val mHandler = Handler()
+//Make sure you update Seekbar on UI thread
+        val player= getPlayer()
+        activity?.runOnUiThread(object : Runnable {
+
+            override fun run() {
+
+                if (player.station?.queue?.currentItem != currentItem) {
+                    currentItem=player.station?.queue?.currentItem
+                    val ci=currentItem?.item?.getItems()!![0]
+                    nowPlayingTrack?.text = ci.name
+                    nowPlayingAlbum?.text = ci.album.name
+                    nowPlayingArtist?.text = ci.artist.name
+                    nowPlayingProgress.max=ci.length
+                }
+                if (player.playing) {
+                    //val progress:Int=mPlayer.
+                    if (player.currentProgress!=null) {
+                        //val p=(((player.currentProgress!!.toFloat()/1000)/player.station?.queue?.currentItem?.item?.getItems()!![0].length.toFloat())*100).toInt()
+                        val p=player.currentProgress!!.toInt()/1000
+                        nowPlayingProgress?.progress = p
+                        //Log.w("P",p.toString())
+                    }
+                }
+                mHandler.postDelayed(this, 1000)
+            }
+        })
+
+        /*
+        val timer = Timer()
+        timer.scheduleAtFixedRate(object : TimerTask() {
+
+            override fun run() {
+
+            }
+
+        }, 0, 1000)
+        */
+
     }
+    override fun onDestroyView() {
+        //Log.w("R","unregD")
+        //LocalBroadcastManager.getInstance(activity!!).unregisterReceiver(stationsBroadcastReceiver)
+        /*try {
+            activity?.unregisterReceiver(nowPlayingBroadcastReceiver)
+        } catch (e: IllegalArgumentException) {
+
+        }*/
+
+        super.onDestroyView()
+    }
+
+
+
+/*
+    private val nowPlayingBroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val status=intent.getStringExtra("status")
+            Log.w("H","NPBR")
+            if (status=="update") {
+
+
+            }
+        }
+    }
+    */
 
     val clickListener = View.OnClickListener { view ->
         when (view.id) {

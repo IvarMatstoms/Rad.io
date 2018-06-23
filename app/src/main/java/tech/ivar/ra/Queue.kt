@@ -4,6 +4,7 @@ class Queue(var randomGen: RandomGen, val items: MutableList<QueueItem>, val sta
     var currentItem:UpcomingItem?=null
     var currentIndex:Int?=null
     val allowRepeat:Boolean=false
+
     var size:Int
     init {
         items.sortBy { it.id }

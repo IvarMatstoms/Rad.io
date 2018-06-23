@@ -24,6 +24,9 @@ import kotlinx.android.synthetic.main.fragment_stations.*
 import tech.ivar.ra.loadRaFile
 import android.support.design.widget.BottomNavigationView
 import tech.ivar.radio.R.id.navigation
+import android.support.v4.content.LocalBroadcastManager
+
+
 
 val STATIONS_FRAGMENT_ACTION= "tech.ivar.radio.stationsfragment.action"
 // TODO: Rename parameter arguments, choose names that match
@@ -58,10 +61,7 @@ class StationsFragment : Fragment() {
         }
         val intentFilter = IntentFilter()
         intentFilter.addAction(STATIONS_FRAGMENT_ACTION)
-        activity?.registerReceiver(StationsFragmentBroadcastReceiver(), intentFilter)
-
-
-
+        activity?.registerReceiver(stationsBroadcastReceiver, intentFilter)
     }
 
 
@@ -80,22 +80,18 @@ class StationsFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        //LocalBroadcastManager.getInstance(activity as Context).registerReceiver(stationsBroadcastReceiver, IntentFilter(STATIONS_FRAGMENT_ACTION));
         fabImport.setOnClickListener(clickListener)
         var viewManager = LinearLayoutManager(activity)
         Log.w("S",getStationIndex().stations.map { it.name }.toString())
         var viewAdapter = StationsListAdapter(activity as Context,getStationIndex().stations.toTypedArray())
 
         var recyclerView = stationsList.apply {
-            // use this setting to improve performance if you know that changes
-            // in content do not change the layout size of the RecyclerView
             setHasFixedSize(true)
-
             // use a linear layout manager
             layoutManager = viewManager
-
             // specify an viewAdapter (see also next example)
             adapter = viewAdapter
-
         }
 
     }
@@ -104,10 +100,8 @@ class StationsFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
         // Inflate the layout for this fragment
-        val v = inflater.inflate(R.layout.fragment_stations, container, false)
-        //val fab = v.findViewById<FloatingActionButton>(R.id.fabImport)
-        //fab.setOnClickListener(clickListener)
 
+        val v = inflater.inflate(R.layout.fragment_stations, container, false)
         return v
     }
 
@@ -117,9 +111,54 @@ class StationsFragment : Fragment() {
         listener?.onFragmentInteraction(uri)
     }
 
+    override fun onDestroyView() {
+        //Log.w("R","unregD")
+        //LocalBroadcastManager.getInstance(activity!!).unregisterReceiver(stationsBroadcastReceiver)
+        try {
+            activity?.unregisterReceiver(stationsBroadcastReceiver)
+        } catch (e: IllegalArgumentException) {
+
+        }
+
+        super.onDestroyView()
+    }
+
+    override fun onPause() {
+        // Unregister since the activity is paused.
+        //Log.w("R","unregP")
+        activity?.unregisterReceiver(
+                stationsBroadcastReceiver)
+        super.onPause()
+    }
+
+    override fun onResume() {
+        // Register to receive messages.
+        // We are registering an observer (mMessageReceiver) to receive Intents
+        // with actions named "custom-event-name".
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(STATIONS_FRAGMENT_ACTION)
+        activity?.registerReceiver(stationsBroadcastReceiver, intentFilter)
+        super.onResume()
+    }
+
     override fun onDetach() {
         super.onDetach()
         listener = null
+    }
+
+    private val stationsBroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val status=intent.getStringExtra("status")
+            Log.w("H","CAAAAALLING")
+            if (status=="reload") {
+                val fragment = StationsFragment()
+                val fragmentTransaction = (context as MainActivity).getSupportFragmentManager().beginTransaction()
+                fragmentTransaction.replace(R.id.fragmentContainer, fragment)
+                fragmentTransaction.addToBackStack(null)
+                fragmentTransaction.commit()
+
+            }
+        }
     }
 
     /**
@@ -225,6 +264,7 @@ class StationsListAdapter(val context: Context,private val stations: Array<Stati
     override fun getItemCount() = stations.size
 }
 
+/*
 class StationsFragmentBroadcastReceiver: BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.w("Q","HI!!!")
@@ -236,4 +276,6 @@ class StationsFragmentBroadcastReceiver: BroadcastReceiver() {
         }
     }
 
+
 }
+*/

@@ -5,7 +5,8 @@
     android:id="@+id/frameLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".NowPlayingFragment">
+    tools:context=".NowPlayingFragment"
+    tools:layout_editor_absoluteY="73dp">
 
     <!-- TODO: Update blank fragment layout -->
 
@@ -17,19 +18,17 @@
         android:src="@drawable/ic_pause_black_24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="@+id/guideline2" />
 
     <ImageView
         android:id="@+id/nowPlayingImage"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:src="@android:drawable/btn_dialog"
-        app:layout_constraintBottom_toTopOf="@+id/nowPlayingProgress"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/guideline2"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/nowPlayingStation" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/nowPlayingTrack"
@@ -39,18 +38,18 @@
         android:text="N/A"
         android:textSize="24sp"
         app:layout_constraintBottom_toTopOf="@+id/nowPlayingAlbum"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintEnd_toEndOf="@+id/nowPlayingAlbum"
+        app:layout_constraintStart_toStartOf="@+id/nowPlayingAlbum" />
 
     <TextView
         android:id="@+id/nowPlayingAlbum"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="8dp"
         android:text="N/A"
         app:layout_constraintBottom_toTopOf="@+id/nowPlayingArtist"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintEnd_toEndOf="@+id/nowPlayingArtist"
+        app:layout_constraintStart_toStartOf="@+id/nowPlayingArtist" />
 
     <TextView
         android:id="@+id/nowPlayingArtist"
@@ -58,9 +57,9 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:text="N/A"
-        app:layout_constraintBottom_toTopOf="@+id/playerPause"
+        app:layout_constraintBottom_toTopOf="@+id/guideline3"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/guideline2" />
 
     <TextView
         android:id="@+id/nowPlayingStation"
@@ -69,21 +68,40 @@
         android:layout_marginTop="8dp"
         android:text="N/A"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/guideline2"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintGuide_percent="0.5"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.5" />
 
     <ProgressBar
         android:id="@+id/nowPlayingProgress"
-        style="?android:attr/progressBarStyleHorizontal"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="14dp"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
+        android:layout_marginTop="78dp"
         android:max="100"
         android:progress="50"
-        app:layout_constraintBottom_toTopOf="@+id/nowPlayingTrack"
+        app:layout_constraintBottom_toTopOf="@+id/playerPause"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/guideline2"
+        app:layout_constraintTop_toBottomOf="@+id/guideline3" />
 
 </android.support.constraint.ConstraintLayout>

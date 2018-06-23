@@ -11,11 +11,14 @@ import android.media.MediaPlayer.OnCompletionListener
 import android.net.Uri
 import android.os.Handler
 import tech.ivar.ra.loadRaFile
+import java.util.*
 
 
 class Player {
     var station:Station?=null
     var playing=false;
+
+    var currentProgress:Int?=null;
     init {
 
     }
@@ -46,7 +49,7 @@ fun getPlayer():Player {
 }
 class BackgroundAudioService() : Service() {
     //creating a mediaplayer object
-    var player: MediaPlayer? = null;
+    var mPlayer: MediaPlayer? = null;
     var station: Station? = null;
 
 
@@ -56,7 +59,32 @@ class BackgroundAudioService() : Service() {
         return null
     }
 
+    init {
+        val timer = Timer()
+        val player=getPlayer()
+        timer.scheduleAtFixedRate(object : TimerTask() {
+
+            override fun run() {
+                if (player.playing && mPlayer?.currentPosition != null) {
+                    player.currentProgress=mPlayer?.currentPosition
+                    /*
+                    val intent = Intent()
+                    intent.action = NOWPLAYING_FRAGMENT_ACTION
+                    intent.putExtra("status", "update")
+                    //val currentItem=
+                    intent.putExtra("track")
+                    sendBroadcast(intent)
+                    //
+                            //FUCK
+                            */
+                }
+            }
+
+        }, 0, 1000)
+    }
+
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+
         //getting systems default ringtone
         Log.w("A",intent.action)
         if (intent.action == "play") {
@@ -65,15 +93,15 @@ class BackgroundAudioService() : Service() {
             getPlayer().station=station
             station?.queue?.fastForward()
             playTrack()
-            //player = MediaPlayer.create(this);
+            //mPlayer = MediaPlayer.create(this);
             //setting loop play to true
             //this will make the ringtone continuously playing
-            //player.setLooping(true);
+            //mPlayer.setLooping(true);
 
-            //staring the player
+            //staring the mPlayer
 
         } else if (intent.action=="pause") {
-            player?.pause()
+            mPlayer?.pause()
             getPlayer().playing=false
         } else if (intent.action=="resume") {
             station?.queue?.fastForward()
@@ -86,6 +114,8 @@ class BackgroundAudioService() : Service() {
         //return START_REDELIVER_INTENT;
         return START_NOT_STICKY
     }
+
+
 
     fun createMediaPlayer(uri: Uri):MediaPlayer {
         val p = MediaPlayer.create(this, uri);
@@ -106,40 +136,40 @@ class BackgroundAudioService() : Service() {
         val nextItem=station!!.queue.currentItem
         val nextTrack=nextItem?.item?.getItems()!![0]
         val fileUri:Uri?= Uri.fromFile(station?.getResFile(this, nextTrack.fileId))
-        if (player == null) {
-            player= createMediaPlayer(fileUri!!)
+        if (mPlayer == null) {
+            mPlayer= createMediaPlayer(fileUri!!)
 
         } else {
-            player?.reset()
-            player?.setDataSource(this, fileUri)
+            mPlayer?.reset()
+            mPlayer?.setDataSource(this, fileUri)
 
-            player?.prepare()
+            mPlayer?.prepare()
         }
-        //player?.seekTo(60)
+        //mPlayer?.seekTo(60)
 
 
         val offset=System.currentTimeMillis()-nextItem?.startTime*1000L
         if (offset > 0) {
-            player?.start();
-            player?.seekTo(offset.toInt())
+            mPlayer?.start();
+            mPlayer?.seekTo(offset.toInt())
 
         } else {
             val handler = Handler()
             handler.postDelayed(Runnable {
                 //Do something after 100ms
-                player?.start();
+                mPlayer?.start();
             }, Math.abs(offset))
         }
         getPlayer().playing=true
-        //player?.start();
+        //mPlayer?.start();
     }
 
 
     override fun onDestroy() {
         Log.w("P","STOP")
-        if (player != null && player?.isPlaying!!) {
-            player?.stop()
+        if (mPlayer != null && mPlayer?.isPlaying!!) {
+            mPlayer?.stop()
         }
-        player?.release()
+        mPlayer?.release()
     }
 }

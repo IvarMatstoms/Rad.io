@@ -50,7 +50,7 @@ class StationsFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var viewAdapter: RecyclerView.Adapter<*>
     private lateinit var viewManager: RecyclerView.LayoutManager
-
+    private var currentStationsIndexVersionId: Int?=null;
     override fun onCreate(savedInstanceState: Bundle?) {
         //Log.d("V",toString(R.id.fabImport))
         super.onCreate(savedInstanceState)
@@ -114,6 +114,7 @@ class StationsFragment : Fragment() {
             // specify an viewAdapter (see also next example)
             adapter = viewAdapter
         }
+        currentStationsIndexVersionId= getStationIndex().indexVersionId
 
     }
 
@@ -149,6 +150,7 @@ class StationsFragment : Fragment() {
         //Log.w("R","unregP")
         activity?.unregisterReceiver(
                 stationsBroadcastReceiver)
+
         super.onPause()
     }
 
@@ -156,9 +158,20 @@ class StationsFragment : Fragment() {
         // Register to receive messages.
         // We are registering an observer (mMessageReceiver) to receive Intents
         // with actions named "custom-event-name".
+        //Log.w("R","RESUME")
         val intentFilter = IntentFilter()
         intentFilter.addAction(STATIONS_FRAGMENT_ACTION)
         activity?.registerReceiver(stationsBroadcastReceiver, intentFilter)
+
+        if (currentStationsIndexVersionId != getStationIndex().indexVersionId) {
+            val fragment = StationsFragment()
+            val fragmentTransaction = (context as MainActivity).supportFragmentManager.beginTransaction()
+            fragmentTransaction.replace(R.id.StationsEditActivityFragmentContainer, fragment)
+            fragmentTransaction.addToBackStack(null)
+            fragmentTransaction.commit()
+
+        }
+
         super.onResume()
     }
 

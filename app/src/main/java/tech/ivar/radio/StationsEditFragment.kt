@@ -1,5 +1,6 @@
 package tech.ivar.radio
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.net.Uri
@@ -15,8 +16,12 @@ import java.util.*
 import android.widget.TextView
 import android.support.v7.widget.helper.ItemTouchHelper
 import android.view.MotionEvent
-import android.support.v4.view.MotionEventCompat
+import android.util.Log
 import android.widget.ImageView
+import org.jetbrains.anko.alert
+import org.jetbrains.anko.noButton
+import org.jetbrains.anko.toast
+import org.jetbrains.anko.yesButton
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -84,6 +89,8 @@ class StationsEditFragment : Fragment(), OnStartDragListener{
         listener?.onFragmentInteraction(uri)
     }
 
+
+
     /*
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -137,58 +144,32 @@ class StationsEditFragment : Fragment(), OnStartDragListener{
     }
 }
 
-/*
-class RecyclerListAdapter : RecyclerView.Adapter<ItemViewHolder>() {
-
-    private val mItems:MutableList<String> = mutableListOf()
-
-    init {
-        mItems.addAll(STRINGS)
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.stations_edit_list_item, parent, false)
-        return ItemViewHolder(view)
-    }
-
-    override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
-        //holder.textView.setText(mItems.get(position))
-        holder.listItem.findViewById<TextView>(R.id.stationsEditListName).text = mItems.get(position)
-    }
-
-    override fun getItemCount(): Int {
-        return mItems.size
-    }
-
-    companion object {
-
-        private val STRINGS = arrayOf("One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten")
-    }
-
-}
-
-*/
 class RecyclerListAdapter(context: Context, private val mDragStartListener: OnStartDragListener) : RecyclerView.Adapter<RecyclerListAdapter.ItemViewHolder>(), ItemTouchHelperAdapter {
 
-    private val mItems:MutableList<String> = mutableListOf()
-
+    private val mItems:MutableList<StationReference> = mutableListOf()
+    var context: Context?=null
     init {
         //mItems.addAll(Arrays.asList(context.resources.getStringArray(R.array.dummy_items)))
-        mItems.addAll(STRINGS)
+        mItems.addAll(getStationIndex().stations)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.stations_edit_list_item, parent, false)
+        context=parent.context
         return ItemViewHolder(view)
+
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
         //holder.textView.setText(mItems.get(position))
-        holder.listItem.findViewById<TextView>(R.id.stationsEditListName).text = mItems.get(position)
+        holder.listItem.findViewById<TextView>(R.id.stationsEditListName).text = mItems[position].name
+        holder.station=mItems[position]
 
         // Start a drag whenever the handle view it touched
         holder.handleView.setOnTouchListener(View.OnTouchListener { v, event ->
-            if (MotionEventCompat.getActionMasked(event) == MotionEvent.ACTION_DOWN) {
+            //event.getAc
+            if (event.action == MotionEvent.ACTION_DOWN) {
                 mDragStartListener.onStartDrag(holder)
             }
             false
@@ -196,13 +177,37 @@ class RecyclerListAdapter(context: Context, private val mDragStartListener: OnSt
     }
 
     override fun onItemDismiss(position: Int) {
+        Log.w("R","REMOVE AT $position")
+        val station:StationReference= getStationIndex().stations[position]
+        if (context != null ) {
+            context?.alert("This cant be undone", "Delete ${station.name}") {
+                yesButton {
+                    getStationIndex().deleteStationByPosition(context!!, position)
+                    context?.toast("Station deleted")
+                }
+                noButton {
+                    context?.toast("Canceled")
+                    /*
+                    val fragment = StationsEditFragment()
+                    val fragmentTransaction = (context as StationsEditActivity).supportFragmentManager.beginTransaction()
+                    fragmentTransaction.replace(R.id.fragmentContainer, fragment)
+                    fragmentTransaction.addToBackStack(null)
+                    fragmentTransaction.commit()
+                    */
+                }
+            }?.show()
+        }
         mItems.removeAt(position)
         notifyItemRemoved(position)
+
     }
 
     override fun onItemMove(fromPosition: Int, toPosition: Int): Boolean {
         Collections.swap(mItems, fromPosition, toPosition)
+        val stationIndex: StationIndex = getStationIndex()
         notifyItemMoved(fromPosition, toPosition)
+        stationIndex.swapStations(context!!, fromPosition, toPosition)
+        Log.w("M","$fromPosition -> $toPosition")
         return true
     }
 
@@ -220,7 +225,11 @@ class RecyclerListAdapter(context: Context, private val mDragStartListener: OnSt
 
         val handleView: ImageView = itemView.findViewById(R.id.stationsEditListHandle) as ImageView
 
+        var station: StationReference?=null
+
+        val context=itemView.context
         init {
+
             //textView = itemView.findViewById<View>(R.id.text) as TextView
         }
 
@@ -232,17 +241,7 @@ class RecyclerListAdapter(context: Context, private val mDragStartListener: OnSt
             itemView.setBackgroundColor(0)
         }
     }
-    companion object {
-
-        private val STRINGS = arrayOf("One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten")
-    }
 }
-class ItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-
-    val listItem: ConstraintLayout = itemView as ConstraintLayout
-
-}
-
 interface ItemTouchHelperAdapter {
 
     fun onItemMove(fromPosition: Int, toPosition: Int): Boolean
@@ -269,6 +268,8 @@ class SimpleItemTouchHelperCallback(private val mAdapter: ItemTouchHelperAdapter
 
     override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder,
                         target: RecyclerView.ViewHolder): Boolean {
+        val context=recyclerView.context
+        //Log.w("M",viewHolder.getAdapterPosition().toString()+"|"+target.getAdapterPosition().toString())
         mAdapter.onItemMove(viewHolder.getAdapterPosition(), target.getAdapterPosition())
         return true
     }

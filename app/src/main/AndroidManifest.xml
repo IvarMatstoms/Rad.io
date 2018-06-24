@@ -24,12 +24,14 @@
             android:name=".ImportActivity"
             android:label="@string/title_activity_import"
             android:parentActivityName=".MainActivity"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
 
         <service android:name=".BackgroundAudioService" />
         <service android:name=".DownloaderService" />
 
-        <activity android:name=".StationsEditActivity"></activity>
+        <activity
+            android:name=".StationsEditActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
 </manifest>

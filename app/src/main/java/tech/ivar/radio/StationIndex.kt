@@ -23,6 +23,7 @@ private const val CHANNEL_ID = "tech.ivar.radio.dchannel"
 
 
 class StationIndex {
+    var indexVersionId: Int=0
     init {
         //loadIndex(c)
     }
@@ -33,6 +34,10 @@ class StationIndex {
 
     }
 
+    fun updateIndexVersionId() {
+        indexVersionId++
+    }
+
     fun loadIndex(context: Context) {
         if (!("index.json" in context.fileList())) {
             saveIndex(context)
@@ -40,8 +45,54 @@ class StationIndex {
         val gson = GsonBuilder().create()
         val file = context.openFileInput("index.json")
         val stationsString = String(file.readBytes())
+        var correct:Boolean=true
         stations = gson.fromJson(stationsString, object : TypeToken<List<StationReference>>() {}.type);
+        stations.forEach {
+            Log.w("A",it.position.toString())
+            if (it.position == null) {
+                it.position=0
+                correct=false
+            }
 
+        }
+        if (!correct) {
+            //
+            saveIndex(context)
+        }
+
+    }
+
+    fun swapStations(context: Context, from: Int, to: Int) {
+        stations[from].position=to
+        if (from < to) {
+            stations.subList(from+1, to+1).forEach {
+                it.position= it.position!! - 1
+            }
+        } else if (to < from) {
+            stations.subList(to, from).forEach {
+                it.position= it.position!! + 1
+            }
+        }
+        saveIndex(context)
+    }
+
+    fun deleteStationByPosition(context: Context, position: Int) {
+        val stationId:String= stations[position].id
+        val baseDir = context.getDir("stations", Context.MODE_PRIVATE)
+        val dir = File(baseDir, stationId)
+        dir.deleteRecursively()
+
+        stations.removeAt(position)
+        saveIndex(context)
+    }
+
+
+    private fun reassignPositions() {
+        stations.sortBy { it.position }
+        //stations.
+        stations.forEachIndexed({index: Int, stationReference: StationReference ->
+            stationReference.position=index
+        })
     }
 
     fun fromUrl(context: Context, url: String) {
@@ -59,12 +110,13 @@ class StationIndex {
 
     fun saveIndex(context: Context) {
         val gson = GsonBuilder().create()
+        reassignPositions()
         val fileContents = gson.toJson(stations)
-
 
         context.openFileOutput("index.json", Context.MODE_PRIVATE).use {
             it.write(fileContents.toByteArray())
         }
+        updateIndexVersionId()
     }
 
 
@@ -188,9 +240,9 @@ class DownloaderService() : Service() {
             broadcastUpdate("download_failed")
         }
 
-        var uniqueID = UUID.randomUUID().toString()
+        val uniqueID = UUID.randomUUID().toString()
 
-        var baseDir = this.getDir("stations", Context.MODE_PRIVATE)
+        val baseDir = this.getDir("stations", Context.MODE_PRIVATE)
 
         notificationCreate()
         notificationStatus("Downloading manifest")
@@ -214,7 +266,7 @@ class DownloaderService() : Service() {
         val gson = GsonBuilder().create()
         val manifest: StationData = gson.fromJson(manifestString, StationData::class.java)
         Log.w("M", fileIndexString)
-        var files: Map<String, FolderFile> = gson.fromJson(fileIndexString, object : TypeToken<Map<String, FolderFile>>() {}.type);
+        val files: Map<String, FolderFile> = gson.fromJson(fileIndexString, object : TypeToken<Map<String, FolderFile>>() {}.type);
 
         val dir = File(baseDir, uniqueID)
         dir.mkdir()
@@ -265,7 +317,7 @@ class DownloaderService() : Service() {
         manifestFile.writeText(newManifestString)
         //Log.w("M", manifest.toString())
 
-        val station = StationReference(uniqueID, manifest.name)
+        val station = StationReference(uniqueID, manifest.name, 0)
         getStationIndex().stations.add(station)
         getStationIndex().saveIndex(this)
 
@@ -341,7 +393,7 @@ class DownloaderService() : Service() {
         //var f=File(dir, uniqueID)
         //f.writeBytes(data)
 
-        val station = StationReference(uniqueID, manifest.name)
+        val station = StationReference(uniqueID, manifest.name, 0)
         getStationIndex().stations.add(station)
         getStationIndex().saveIndex(this)
 
@@ -416,7 +468,6 @@ data class StationData(
         var library: Library,
         var id: String?
 
-
 )
 
 data class Library(var artists: List<Artist>)
@@ -434,7 +485,7 @@ data class Track(
     //var fileId:String?=null
 }
 
-data class StationReference(var id: String, var name: String) {}
+data class StationReference(var id: String, var name: String, var position: Int?) {}
 
 
 data class FolderFile(var key: String,
@@ -465,48 +516,3 @@ fun getStationIndex(): StationIndex {
     }
     return stationIndex!!
 }
-
-
-/*
-   fun notificationDone() {
-        if (mBuilder != null) {
-            val notificationManager = NotificationManagerCompat.from(this)
-            mBuilder!!.setOngoing(false)
-                    .setProgress(0, 100, false)
-                    .setContentTitle("Download done")
-            notificationManager.notify(1, mBuilder!!.build());
-        }
-    }
-
-    fun notificationStatus(status: String) {
-        if (mBuilder != null) {
-            val notificationManager = NotificationManagerCompat.from(this)
-            mBuilder!!.setOngoing(false)
-                    .setContentTitle("Downloading station:$status")
-            notificationManager.notify(1, mBuilder!!.build());
-        }
-    }
-
-    fun notificationProgress(progress: Int) {
-        if (mBuilder != null) {
-            Log.w("P",progress.toString())
-            val notificationManager = NotificationManagerCompat.from(this)
-            mBuilder!!.setProgress(0, progress, false)
-            notificationManager.notify(1, mBuilder!!.build());
-        }
-    }
-
-    fun notificationCreate() {
-        createNotificationChannel()
-        mBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_play_arrow_black_24dp)
-                .setContentTitle("Downloading station")
-                .setProgress(33, 100, false)
-                .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-        val notificationManager = NotificationManagerCompat.from(this)
-
-        notificationManager.notify(1, mBuilder!!.build())
-
-    }
- */

@@ -48,6 +48,7 @@ class NowPlayingFragment : Fragment() {
     private var listener: OnFragmentInteractionListener? = null
     private var currentItem: UpcomingItem?=null
     private var currentStation: Station?=null
+    private var currentPlayingState:Boolean? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,13 +85,7 @@ class NowPlayingFragment : Fragment() {
             }
 
         }
-        val pp = playerPause
-
-        if (getPlayer().playing) {
-            pp.setImageResource(R.drawable.ic_pause_black_24dp);
-        } else {
-            pp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
-        }
+        updatePlayPause()
         playerPause.setOnClickListener(clickListener)
         val mHandler = Handler()
 //Make sure you update Seekbar on UI thread
@@ -112,6 +107,11 @@ class NowPlayingFragment : Fragment() {
                     nowPlayingProgress?.max=ci.length
                     nowPlayingLength?.text=formatSec(ci.length)
                 }
+
+                if (currentPlayingState != player.playing) {
+                    updatePlayPause()
+                }
+
                 if (player.playing) {
                     //val progress:Int=mPlayer.
                     if (player.currentProgress!=null) {
@@ -142,6 +142,19 @@ class NowPlayingFragment : Fragment() {
             }
         })
 
+    }
+
+    fun updatePlayPause() {
+        val pp = playerPause
+        pp?.let {
+            if (getPlayer().playing) {
+                it.setImageResource(R.drawable.ic_pause_black_24dp);
+                currentPlayingState = true
+            } else {
+                it.setImageResource(R.drawable.ic_play_arrow_black_24dp);
+                currentPlayingState = false
+            }
+        }
     }
 
 

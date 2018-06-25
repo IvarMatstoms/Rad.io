@@ -14,10 +14,7 @@ import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
 import android.view.View.OnClickListener
-import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
 import kotlinx.android.synthetic.main.fragment_stations.*
@@ -25,7 +22,9 @@ import tech.ivar.ra.loadRaFile
 import android.support.design.widget.BottomNavigationView
 import tech.ivar.radio.R.id.navigation
 import android.support.v4.content.LocalBroadcastManager
-
+import android.view.*
+import android.widget.Toast
+import org.jetbrains.anko.toast
 
 
 val STATIONS_FRAGMENT_ACTION= "tech.ivar.radio.stationsfragment.action"
@@ -51,7 +50,7 @@ class StationsFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var viewAdapter: RecyclerView.Adapter<*>
     private lateinit var viewManager: RecyclerView.LayoutManager
-
+    private var currentStationsIndexVersionId: Int?=null;
     override fun onCreate(savedInstanceState: Bundle?) {
         //Log.d("V",toString(R.id.fabImport))
         super.onCreate(savedInstanceState)
@@ -62,6 +61,7 @@ class StationsFragment : Fragment() {
         val intentFilter = IntentFilter()
         intentFilter.addAction(STATIONS_FRAGMENT_ACTION)
         activity?.registerReceiver(stationsBroadcastReceiver, intentFilter)
+        setHasOptionsMenu(true);
     }
 
 
@@ -79,6 +79,27 @@ class StationsFragment : Fragment() {
 
     }
 
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        //val inflater = activity?.getMenuInflater()
+        inflater.inflate(R.menu.stations_menu, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle item selection
+        return when (item.itemId) {
+            R.id.stationsMenuEdit -> {
+                val intent = Intent(activity, StationsEditActivity::class.java)
+                        .apply {
+
+                        }
+                startActivity(intent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         //LocalBroadcastManager.getInstance(activity as Context).registerReceiver(stationsBroadcastReceiver, IntentFilter(STATIONS_FRAGMENT_ACTION));
         fabImport.setOnClickListener(clickListener)
@@ -93,6 +114,7 @@ class StationsFragment : Fragment() {
             // specify an viewAdapter (see also next example)
             adapter = viewAdapter
         }
+        currentStationsIndexVersionId= getStationIndex().indexVersionId
 
     }
 
@@ -128,6 +150,7 @@ class StationsFragment : Fragment() {
         //Log.w("R","unregP")
         activity?.unregisterReceiver(
                 stationsBroadcastReceiver)
+
         super.onPause()
     }
 
@@ -135,9 +158,20 @@ class StationsFragment : Fragment() {
         // Register to receive messages.
         // We are registering an observer (mMessageReceiver) to receive Intents
         // with actions named "custom-event-name".
+        //Log.w("R","RESUME")
         val intentFilter = IntentFilter()
         intentFilter.addAction(STATIONS_FRAGMENT_ACTION)
         activity?.registerReceiver(stationsBroadcastReceiver, intentFilter)
+
+        if (currentStationsIndexVersionId != getStationIndex().indexVersionId) {
+            val fragment = StationsFragment()
+            val fragmentTransaction = (context as MainActivity).supportFragmentManager.beginTransaction()
+            fragmentTransaction.replace(R.id.StationsEditActivityFragmentContainer, fragment)
+            fragmentTransaction.addToBackStack(null)
+            fragmentTransaction.commit()
+
+        }
+
         super.onResume()
     }
 

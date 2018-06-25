@@ -75,13 +75,15 @@ class MainActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        getStationIndex().loadIndex(this)
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
         val songsFragment = StationsFragment.newInstance("","")
         openFragment(songsFragment)
-        getStationIndex().loadIndex(this)
 
         val intentFilter = IntentFilter()
         intentFilter.addAction(MAIN_ACTIVITY_ACTION)

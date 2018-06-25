@@ -112,13 +112,9 @@ class BackgroundAudioService() : Service() {
             //staring the mPlayer
 
         } else if (intent.action=="pause") {
-            mPlayer?.pause()
-            notification.update(this)
-            getPlayer().playing=false
+            pause()
         } else if (intent.action=="resume") {
-            station?.queue?.fastForward()
-            playTrack()
-            notification.update(this)
+            resume()
         }
 
         //we have some options for service
@@ -126,22 +122,36 @@ class BackgroundAudioService() : Service() {
         //return START_REDELIVER_INTENT;
         return START_NOT_STICKY
     }
+
+    fun pause() {
+        mPlayer?.pause()
+        getPlayer().playing=false
+        updateFrontends()
+    }
+
+    fun resume() {
+        station?.queue?.fastForward()
+        playTrack()
+        updateFrontends()
+    }
+
+    fun updateFrontends() {
+        notification.update(this)
+    }
+
+
     private val playerBroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val status=intent.getStringExtra("status")
             Log.w("H",status)
             if (status=="toggle") {
                 if (getPlayer().playing) {
-                    mPlayer?.pause()
-                    getPlayer().playing = false
+                    pause()
                 } else {
-                    station?.queue?.fastForward()
-                    playTrack()
+                    resume()
                 }
-                notification.update(this@BackgroundAudioService)
-                Log.w("N","NPAUSE")
             } else if (status=="resume") {
-
+                    resume()
             }
         }
     }

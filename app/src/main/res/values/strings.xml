@@ -22,5 +22,6 @@
 
     <string name="pchannel_name">Rad.io player</string>
     <string name="pchannel_description">Rad.io player notifications</string>
+    <string name="stations_menu_edit">Edit</string>
 
 </resources>

@@ -75,11 +75,13 @@ class MainActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
+        val status = intent.extras?.getString("status")
+        Log.w("S",status.toString())
         getStationIndex().loadIndex(this)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
 
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
         val songsFragment = StationsFragment.newInstance("","")
@@ -88,6 +90,11 @@ class MainActivity : AppCompatActivity() {
         val intentFilter = IntentFilter()
         intentFilter.addAction(MAIN_ACTIVITY_ACTION)
         registerReceiver(broadcastReceiver, intentFilter)
+
+        if (status == "now_playing") {
+            Log.w("F","NUUU")
+            openFragment(NowPlayingFragment.newInstance("",""))
+        }
     }
 
     public override fun onSaveInstanceState(savedInstanceState: Bundle) {

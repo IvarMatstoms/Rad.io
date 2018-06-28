@@ -288,6 +288,12 @@ class PlayerNotification {
             notificationLayout.setImageViewBitmap(R.id.playerNotificationImage, it)
         }
 
+        val tapIntent = Intent(context, MainActivity::class.java)
+        tapIntent.putExtra("status","now_playing")
+        tapIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        //tapIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        val tapPendingIntent = PendingIntent.getActivity(context, 0, tapIntent, 0)
+
         if (player.playing) {
             notificationLayout.setImageViewResource(R.id.playerNotificationPlayPause, R.drawable.ic_pause_black_24dp);
         } else {
@@ -310,6 +316,7 @@ class PlayerNotification {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomContentView(notificationLayout)
+                .setContentIntent(tapPendingIntent)
                 //.setCustomBigContentView(notificationLayoutExpanded)
                 //.setContentIntent(pendingIntent)
 

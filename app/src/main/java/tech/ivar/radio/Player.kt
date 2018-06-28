@@ -2,7 +2,6 @@ package tech.ivar.radio
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.RemoteInput
 import android.content.Context
 import android.util.Log
 import tech.ivar.ra.Station
@@ -25,11 +24,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 //import sun.invoke.util.VerifyAccess.getPackageName
 import android.widget.RemoteViews
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import java.io.File
 
 val PLAYER_SERVICE_ACTION= "tech.ivar.radio.playerservice.action"
 private const val CHANNEL_ID = "tech.ivar.radio.pchannel"
 class Player {
+    private var prepared=false
     var station:Station?=null
     var playing=false;
 
@@ -38,9 +40,14 @@ class Player {
 
     }
 
-    fun createPlayer(context:Context) {
+    /*
+    fun prepare(context: Context) {
+        if (prepared) {
+            return
+        }
 
     }
+    */
 
     fun play(context: Context, stationId: String) {
         //val upcomingItem=station.queue.nextItem()
@@ -88,6 +95,9 @@ class BackgroundAudioService() : Service() {
             }
 
         }, 0, 1000)
+
+
+
     }
 
     override fun onCreate() {
@@ -95,6 +105,10 @@ class BackgroundAudioService() : Service() {
         val intentFilter = IntentFilter()
         intentFilter.addAction(PLAYER_SERVICE_ACTION)
         this.registerReceiver(playerBroadcastReceiver, intentFilter)
+
+        if (!("player_cache.json" in fileList())) {
+            saveCache()
+        }
     }
 
 
@@ -103,19 +117,18 @@ class BackgroundAudioService() : Service() {
 
         //getting systems default ringtone
         Log.w("A",intent.action)
+        //getPlayer().prepare(this)
         if (intent.action == "play") {
-            val stationId:String = intent.getStringExtra("stationId")
-            station= loadRaFile(this, stationId)
-            getPlayer().station=station
-            station?.queue?.fastForward()
-            playTrack()
+
             //mPlayer = MediaPlayer.create(this);
             //setting loop play to true
             //this will make the ringtone continuously playing
             //mPlayer.setLooping(true);
 
             //staring the mPlayer
-
+            val stationId:String = intent.getStringExtra("stationId")
+            selectStation(stationId)
+            playTrack()
         } else if (intent.action=="pause") {
             pause()
         } else if (intent.action=="resume") {
@@ -135,13 +148,27 @@ class BackgroundAudioService() : Service() {
     }
 
     fun resume() {
-        station?.queue?.fastForward()
-        playTrack()
-        updateFrontends()
+        if (station == null) {
+            loadCache()
+        }
+
+        if (station != null) {
+            station?.queue?.fastForward()
+            playTrack()
+            updateFrontends()
+        }
     }
 
     fun updateFrontends() {
         notification.update(this)
+    }
+
+    fun selectStation(stationId:String) {
+        //
+        station= loadRaFile(this, stationId)
+        getPlayer().station=station
+        station?.queue?.fastForward()
+        saveCache()
     }
 
 
@@ -158,6 +185,27 @@ class BackgroundAudioService() : Service() {
             } else if (status=="resume") {
                     resume()
             }
+        }
+    }
+
+    fun saveCache() {
+        val cacheObj=PlayerCache(station?.id)
+        val gson = GsonBuilder().create()
+        val fileContents = gson.toJson(cacheObj)
+
+        this.openFileOutput("player_cache.json", Context.MODE_PRIVATE).use {
+            it.write(fileContents.toByteArray())
+        }
+    }
+
+    fun loadCache() {
+        val gson = GsonBuilder().create()
+        val file = openFileInput("player_cache.json")
+        val cacheString = String(file.readBytes())
+        var correct:Boolean=true
+        val cacheObj:PlayerCache = gson.fromJson(cacheString, object : TypeToken<PlayerCache>() {}.type);
+        if (cacheObj.stationId != null) {
+            selectStation(cacheObj.stationId)
         }
     }
 
@@ -323,3 +371,7 @@ class PlayerNotification {
         NotificationManagerCompat.from(context).cancel(2)
     }
 }
+
+private data class PlayerCache(
+        @com.google.gson.annotations.SerializedName("station_id")
+        val stationId: String?)

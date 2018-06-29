@@ -151,7 +151,9 @@ class DownloaderService() : Service() {
         Log.w("A", intent.action)
         if (intent.action == "download") {
             val url: String = intent.getStringExtra("url")
-            if (url.endsWith(".ra")) {
+            val method: String = intent.getStringExtra("method")
+
+            if (method=="ra") {
                 thread {
                     downloadRa(url)
                     broadcastUpdate("download_done")

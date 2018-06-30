@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val status = intent.extras?.getString("status")
         Log.w("S",status.toString())
-        getStationIndex().loadIndex(this)
+        getStationIndex().loadIndexes(this)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)

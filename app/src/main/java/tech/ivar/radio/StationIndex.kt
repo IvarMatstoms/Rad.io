@@ -1,6 +1,5 @@
 package tech.ivar.radio
 
-
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -18,11 +17,11 @@ import android.app.NotificationChannel
 import android.os.Build
 import android.support.v4.app.NotificationManagerCompat
 
-
 private const val CHANNEL_ID = "tech.ivar.radio.dchannel"
 
 
 class StationIndex {
+    lateinit var storageLocations:Map<String, StorageInterface>
     var indexVersionId: Int=0
     init {
         //loadIndex(c)
@@ -38,15 +37,15 @@ class StationIndex {
         indexVersionId++
     }
 
-    fun loadIndex(context: Context) {
-        if (!("index.json" in context.fileList())) {
-            saveIndex(context)
+    fun loadIndexes(context: Context) {
+        storageLocations=listOf(StorageInternal(),StorageExternal()).filter { it.isAvailable() }.associateBy { it.id }
+        stations= mutableListOf()
+        storageLocations.forEach {
+            id, storageLocation ->
+            loadIndex(context,storageLocation)
         }
-        val gson = GsonBuilder().create()
-        val file = context.openFileInput("index.json")
-        val stationsString = String(file.readBytes())
         var correct:Boolean=true
-        stations = gson.fromJson(stationsString, object : TypeToken<List<StationReference>>() {}.type);
+
         stations.forEach {
             Log.w("A",it.position.toString())
             if (it.position == null) {
@@ -56,9 +55,23 @@ class StationIndex {
 
         }
         if (!correct) {
-            //
             saveIndex(context)
         }
+    }
+
+    fun loadIndex(context: Context, storageLocation: StorageInterface) {
+        if (!("index.json" in context.fileList())) {
+            saveIndex(context)
+        }
+        val gson = GsonBuilder().create()
+        val file = context.openFileInput("index.json")
+        val stationsString = String(file.readBytes())
+        val storageStations:List<StationReference> = gson.fromJson(stationsString, object : TypeToken<List<StationReference>>() {}.type)
+        storageStations.forEach({
+            it.storageLocation=storageLocation
+        })
+        stations.addAll(storageStations)
+
 
     }
 
@@ -111,6 +124,11 @@ class StationIndex {
     fun saveIndex(context: Context) {
         val gson = GsonBuilder().create()
         reassignPositions()
+        val storageLocationsStations=storageLocations.forEach { id, storageInterface -> z }
+        storageLocations.forEach {
+            id, storageLocation ->
+            
+        }
         val fileContents = gson.toJson(stations)
 
         context.openFileOutput("index.json", Context.MODE_PRIVATE).use {
@@ -487,7 +505,9 @@ data class Track(
     //var fileId:String?=null
 }
 
-data class StationReference(var id: String, var name: String, var position: Int?) {}
+data class StationReference(var id: String, var name: String, var position: Int?) {
+    var storageLocation:StorageInterface?=null
+}
 
 
 data class FolderFile(var key: String,

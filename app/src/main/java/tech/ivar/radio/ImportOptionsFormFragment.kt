@@ -16,6 +16,7 @@ import android.widget.Spinner
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
 import android.content.Intent
+import android.widget.RadioButton
 import kotlinx.android.synthetic.main.fragment_import_options_form.*
 
 //importOptionsFormOkButton
@@ -77,7 +78,7 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
         val adapter = ArrayAdapter<String>(context, android.R.layout.simple_spinner_item)
         downloadOptionsList = swsManifest!!.DownloadOptions.values.toList().sortedBy { if(it.methodId=="folder") 0 else 1 }
         adapter.addAll(downloadOptionsList!!.mapIndexed { index:Int, downloadOption ->
-            val extraString=if(index==0){"(Recomended)"} else {""}
+            val extraString=if(index==0){"(Recommended)"} else {""}
             "${downloadOption.name}(${downloadOption.methodObject!!.downloadMethodName})$extraString"
         }.toMutableList())
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -85,6 +86,13 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
 
 // Apply the adapter to the spinner
         spinner.adapter = adapter
+        getStationIndex().storageLocations.forEach({id, storageLocation ->
+            val radioButton = (activity?.findViewById<View>(getResources().getIdentifier(storageLocation.radioButtonId, "id", context!!.getPackageName())) as RadioButton)
+            radioButton.text=storageLocation.name
+            radioButton.isEnabled=storageLocation.isAvailable()
+            radioButton.isChecked= storageLocation.isDefault
+
+        })
     }
 
     fun parseSwsManifest(swsManifestString: String) {
@@ -116,6 +124,8 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
             R.id.importOptionsFormOkButton -> {
                 selectedDownloadOption?.let {
                     val baseUrl=url+it.fileName
+                    val selectedId = importOptionsFormStorageGroup.getCheckedRadioButtonId()
+                    val storageLocation= getStationIndex().storageLocations.filterValues { getResources().getIdentifier(it.radioButtonId, "id", context!!.getPackageName())==selectedId }.toList()[0]
                     it.methodObject!!.downloadFromUrl(context!!, baseUrl)
                     val intent = Intent(activity, MainActivity::class.java)
                             .apply {

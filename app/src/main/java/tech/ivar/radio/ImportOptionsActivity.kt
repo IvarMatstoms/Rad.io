@@ -22,6 +22,8 @@ class ImportOptionsActivity : AppCompatActivity() {
         val url:String=extras.getString("import_web_url")
         Log.w("U",url)
         downloadSwsManifest(url)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
         /*
         var value = -1 // or other values
         if (b != null)

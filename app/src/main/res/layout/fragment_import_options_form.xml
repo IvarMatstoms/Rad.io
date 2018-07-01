@@ -16,7 +16,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/importOptionsFormName" />
 
     <Button
         android:id="@+id/importOptionsFormOkButton"
@@ -57,5 +57,15 @@
             android:layout_weight="1"
             android:text="RadioButton" />
     </RadioGroup>
+
+    <TextView
+        android:id="@+id/importOptionsFormName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:text="NAME"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

@@ -16,6 +16,11 @@ import android.support.v4.app.NotificationCompat
 import android.app.NotificationChannel
 import android.os.Build
 import android.support.v4.app.NotificationManagerCompat
+import tech.ivar.ra.Queue
+import tech.ivar.ra.QueueItem
+import tech.ivar.ra.RandomGen
+import tech.ivar.ra.Station
+
 
 private const val CHANNEL_ID = "tech.ivar.radio.dchannel"
 
@@ -44,27 +49,32 @@ class StationIndex {
             id, storageLocation ->
             loadIndex(context,storageLocation)
         }
-        var correct:Boolean=true
 
+        stations.sortBy { it.position }
+
+        var correct=true
         stations.forEach {
             Log.w("A",it.position.toString())
             if (it.position == null) {
                 it.position=0
                 correct=false
             }
-
+            Log.w("Q",it.storageLocation.toString())
         }
         if (!correct) {
+            //Log.w("W","SAVEING")
             saveIndex(context)
         }
     }
 
     fun loadIndex(context: Context, storageLocation: StorageInterface) {
-        if (!("index.json" in context.fileList())) {
-            saveIndex(context)
+        val file:File=storageLocation.getIndexFile(context)
+        if (!file.exists()) {
+            //saveIndex(context)
+            createIndex(file)
         }
         val gson = GsonBuilder().create()
-        val file = context.openFileInput("index.json")
+        //val file = context.openFileInput("index.json")
         val stationsString = String(file.readBytes())
         val storageStations:List<StationReference> = gson.fromJson(stationsString, object : TypeToken<List<StationReference>>() {}.type)
         storageStations.forEach({
@@ -72,6 +82,30 @@ class StationIndex {
         })
         stations.addAll(storageStations)
 
+
+    }
+
+    fun createIndex(file:File) {
+        file.writeText("[]")
+    }
+
+    fun saveIndex(context: Context) {
+        val gson = GsonBuilder().excludeFieldsWithoutExposeAnnotation().create()
+        reassignPositions()
+        val storageLocationsStations:Map<String, MutableList<StationReference>> = storageLocations.map {it.key to mutableListOf<StationReference>()}.toMap()
+        Log.w("S","SSSSS")
+        Log.w("S",storageLocationsStations.toString())
+        stations.forEach {
+            Log.w("S",it.storageLocation.toString())
+            storageLocationsStations[it.storageLocation!!.id]!!.add(it)
+        }
+        storageLocations.values.forEach {
+            val fileContents = gson.toJson(storageLocationsStations[it.id])
+
+            val file:File=it.getIndexFile(context)
+            file.writeText(fileContents)
+        }
+        updateIndexVersionId()
 
     }
 
@@ -90,8 +124,9 @@ class StationIndex {
     }
 
     fun deleteStationByPosition(context: Context, position: Int) {
-        val stationId:String= stations[position].id
-        val baseDir = context.getDir("stations", Context.MODE_PRIVATE)
+        val station=stations[position]
+        val stationId:String= station.id
+        val baseDir = station.storageLocation!!.getStationsDir(context)
         val dir = File(baseDir, stationId)
         dir.deleteRecursively()
 
@@ -108,6 +143,29 @@ class StationIndex {
         })
     }
 
+    fun loadStation(context: Context, id: String): Station {
+        val stationReference=stations.filter { it.id==id }[0]
+        //val base_dir = context.getDir("stations", Context.MODE_PRIVATE)
+        val baseDir=stationReference.storageLocation!!.getStationsDir(context)
+        val dir = File(baseDir, id)
+        val manifestFile: File = File(dir, "manifest.json")
+        val manifestString = String(manifestFile.readBytes())
+        val gson = GsonBuilder().create()
+        val station: Station = gson.fromJson(manifestString, object : TypeToken<Station>() {}.type);
+        Log.w("R", station.toString())
+        val queueItems: MutableList<QueueItem> = mutableListOf()
+        station.library.updateReferences()
+        station.library.artists.forEach {
+            it.albums.forEach {
+                queueItems.addAll(it.tracks)
+            }
+        }
+        Log.w("S","START TIME ${station.startTime}")
+        station.queue= Queue(RandomGen(station.seed), queueItems, station.startTime)
+        station.setStorageLocation(stationReference.storageLocation!!)
+        return station
+    }
+
     fun fromUrl(context: Context, url: String) {
         val intent: Intent = Intent(context, DownloaderService::class.java)
         //intent.putExtra("firstTrackUri", trackUri.toString())
@@ -121,21 +179,6 @@ class StationIndex {
     }
 
 
-    fun saveIndex(context: Context) {
-        val gson = GsonBuilder().create()
-        reassignPositions()
-        val storageLocationsStations=storageLocations.forEach { id, storageInterface -> z }
-        storageLocations.forEach {
-            id, storageLocation ->
-            
-        }
-        val fileContents = gson.toJson(stations)
-
-        context.openFileOutput("index.json", Context.MODE_PRIVATE).use {
-            it.write(fileContents.toByteArray())
-        }
-        updateIndexVersionId()
-    }
 
 
 }
@@ -170,16 +213,18 @@ class DownloaderService() : Service() {
         if (intent.action == "download") {
             val url: String = intent.getStringExtra("url")
             val method: String = intent.getStringExtra("method")
-
+            val storageLocationId = intent.getStringExtra("storage_location")
+            val storageLocation = getStationIndex().storageLocations[storageLocationId]!!
+            //Log.w("S",storageLocation?.name)
             if (method=="ra") {
                 thread {
-                    downloadRa(url)
+                    downloadRa(url, storageLocation)
                     broadcastUpdate("download_done")
                     reloadStationsList()
                 }
             } else {
                 thread {
-                    downloadFolder(url)
+                    downloadFolder(url, storageLocation)
                     broadcastUpdate("download_done")
                     reloadStationsList()
                 }
@@ -189,7 +234,7 @@ class DownloaderService() : Service() {
 
     }
 
-    fun downloadRa(url: String) {
+    fun downloadRa(url: String, storageLocation: StorageInterface) {
         notificationCreate()
 
         url.httpGet().response { request, response, result ->
@@ -197,7 +242,7 @@ class DownloaderService() : Service() {
             val (bytes, error) = result
             if (bytes != null) {
                 //println(bytes)
-                addStationRa(bytes)
+                addStationRa(bytes, storageLocation)
                 notificationDone()
             } else {
                 Log.w("W", error.toString())
@@ -242,7 +287,7 @@ class DownloaderService() : Service() {
 
 
 
-    fun downloadFolder(url_: String) {
+    fun downloadFolder(url_: String, storageLocation: StorageInterface) {
         fun getTextFile(url: String): String? {
 
             val (request, response, result) = url.httpGet().responseString()
@@ -261,8 +306,9 @@ class DownloaderService() : Service() {
         }
 
         val uniqueID = UUID.randomUUID().toString()
+        val baseDir = storageLocation!!.getStationsDir(this)
 
-        val baseDir = this.getDir("stations", Context.MODE_PRIVATE)
+        //val baseDir = this.getDir("stations", Context.MODE_PRIVATE)
 
         notificationCreate()
         notificationStatus("Downloading manifest")
@@ -338,13 +384,14 @@ class DownloaderService() : Service() {
         //Log.w("M", manifest.toString())
 
         val station = StationReference(uniqueID, manifest.name, 0)
+        station.storageLocation=storageLocation
         getStationIndex().stations.add(station)
         getStationIndex().saveIndex(this)
 
         notificationDone()
     }
 
-    fun addStationRa(data: ByteArray) {
+    fun addStationRa(data: ByteArray, storageLocation: StorageInterface) {
         fun bytesToInt(byteArray: ByteArray): Int {
             //val = if(b) {3 } else {5}
             return byteArray.mapIndexed { index, byte ->
@@ -355,6 +402,7 @@ class DownloaderService() : Service() {
                 } shl (3 - index) * 8)
             }.sum()
         }
+        val baseDir = storageLocation!!.getStationsDir(this)
 
         var uniqueID = UUID.randomUUID().toString()
         val gson = GsonBuilder().create()
@@ -368,11 +416,11 @@ class DownloaderService() : Service() {
         offset += 4
         var fileIndex = String(data.copyOfRange(offset, offset + fileIndexSize))
         offset += fileIndexSize
-        var base_dir = this.getDir("stations", Context.MODE_PRIVATE)
+        //var base_dir = this.getDir("stations", Context.MODE_PRIVATE)
         Log.w("B", fileIndexSize.toString())
         Log.w("B", manifestString)
         Log.w("B", fileIndex)
-        val dir = File(base_dir, uniqueID)
+        val dir = File(baseDir, uniqueID)
         dir.mkdir()
         val resDir = File(dir, "res")
         resDir.mkdir()
@@ -414,6 +462,7 @@ class DownloaderService() : Service() {
         //f.writeBytes(data)
 
         val station = StationReference(uniqueID, manifest.name, 0)
+        station.storageLocation=storageLocation
         getStationIndex().stations.add(station)
         getStationIndex().saveIndex(this)
 
@@ -505,7 +554,13 @@ data class Track(
     //var fileId:String?=null
 }
 
-data class StationReference(var id: String, var name: String, var position: Int?) {
+data class StationReference(
+        @com.google.gson.annotations.Expose
+        var id: String,
+        @com.google.gson.annotations.Expose
+        var name: String,
+        @com.google.gson.annotations.Expose
+        var position: Int?) {
     var storageLocation:StorageInterface?=null
 }
 

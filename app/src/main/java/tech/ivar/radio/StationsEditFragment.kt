@@ -203,6 +203,7 @@ class RecyclerListAdapter(context: Context, private val mDragStartListener: OnSt
     }
 
     override fun onItemMove(fromPosition: Int, toPosition: Int): Boolean {
+
         Collections.swap(mItems, fromPosition, toPosition)
         val stationIndex: StationIndex = getStationIndex()
         notifyItemMoved(fromPosition, toPosition)

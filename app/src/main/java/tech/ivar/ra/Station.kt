@@ -1,6 +1,7 @@
 package tech.ivar.ra
 
 import android.content.Context
+import tech.ivar.radio.StorageInterface
 import java.io.File
 
 data class Station(
@@ -14,9 +15,14 @@ data class Station(
         val name: String) {
     var randomGen: RandomGen
     lateinit var queue:Queue;
+    private var storageLocation:StorageInterface? = null
     init {
         randomGen = RandomGen(seed)
 
+    }
+
+    fun setStorageLocation(storageLocation_: StorageInterface) {
+        storageLocation=storageLocation_
     }
 
     fun fastForward() {
@@ -24,7 +30,8 @@ data class Station(
     }
 
     fun getResFile(context: Context, fileId:String):File {
-        val stationsDir=context.getDir("stations", Context.MODE_PRIVATE)
+        //val stationsDir=context.getDir("stations", Context.MODE_PRIVATE)
+        val stationsDir=storageLocation!!.getStationsDir(context)
         val stationDir= File(stationsDir,id)
         return File(File(stationDir, "res"),fileId)
 

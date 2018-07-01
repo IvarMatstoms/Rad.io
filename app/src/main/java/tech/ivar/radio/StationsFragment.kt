@@ -166,10 +166,9 @@ class StationsFragment : Fragment() {
         if (currentStationsIndexVersionId != getStationIndex().indexVersionId) {
             val fragment = StationsFragment()
             val fragmentTransaction = (context as MainActivity).supportFragmentManager.beginTransaction()
-            fragmentTransaction.replace(R.id.StationsEditActivityFragmentContainer, fragment)
-            fragmentTransaction.addToBackStack(null)
+            fragmentTransaction.replace(R.id.fragmentContainer, fragment)
+            //fragmentTransaction.addToBackStack(null)
             fragmentTransaction.commit()
-
         }
 
         super.onResume()

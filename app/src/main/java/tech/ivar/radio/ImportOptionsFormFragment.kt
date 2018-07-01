@@ -56,6 +56,7 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
         // Inflate the layout for this fragment
+
         return inflater.inflate(R.layout.fragment_import_options_form, container, false)
     }
 
@@ -73,6 +74,9 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
 
     fun createForm() {
 
+        (activity as ImportOptionsActivity).supportActionBar?.title=swsManifest!!.name
+
+        importOptionsFormName.text=swsManifest!!.name
 
         val spinner = activity?.findViewById(R.id.importOptionsFormMethodSpinner) as Spinner
         val adapter = ArrayAdapter<String>(context, android.R.layout.simple_spinner_item)
@@ -125,8 +129,8 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
                 selectedDownloadOption?.let {
                     val baseUrl=url+it.fileName
                     val selectedId = importOptionsFormStorageGroup.getCheckedRadioButtonId()
-                    val storageLocation= getStationIndex().storageLocations.filterValues { getResources().getIdentifier(it.radioButtonId, "id", context!!.getPackageName())==selectedId }.toList()[0]
-                    it.methodObject!!.downloadFromUrl(context!!, baseUrl)
+                    val storageLocation= getStationIndex().storageLocations.filterValues { getResources().getIdentifier(it.radioButtonId, "id", context!!.getPackageName())==selectedId }.values.toList()[0]
+                    it.methodObject!!.downloadFromUrl(context!!, baseUrl, storageLocation)
                     val intent = Intent(activity, MainActivity::class.java)
                             .apply {
 
@@ -198,15 +202,16 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
 
 interface DownloadMethod {
     val downloadMethodName: String
-    fun downloadFromUrl(context: Context, url: String)
+    fun downloadFromUrl(context: Context, url: String, storageLocation: StorageInterface)
 }
 
 class DownloadMethodFolder : DownloadMethod {
-    override fun downloadFromUrl(context: Context, url: String) {
+    override fun downloadFromUrl(context: Context, url: String, storageLocation: StorageInterface) {
         val intent: Intent = Intent(context, DownloaderService::class.java)
         //intent.putExtra("firstTrackUri", trackUri.toString())
         intent.putExtra("url", url)
         intent.putExtra("method", "folder")
+        intent.putExtra("storage_location", storageLocation.id)
         intent.action = "download"
         context.startService(intent)
     }
@@ -217,12 +222,13 @@ class DownloadMethodFolder : DownloadMethod {
 }
 
 class DownloadMethodRaArchive : DownloadMethod {
-    override fun downloadFromUrl(context: Context, url: String) {
+    override fun downloadFromUrl(context: Context, url: String, storageLocation: StorageInterface) {
         //Log.w("T", "TODO DOWNLOAD FUN")
         val intent: Intent = Intent(context, DownloaderService::class.java)
         //intent.putExtra("firstTrackUri", trackUri.toString())
         intent.putExtra("url", url)
         intent.putExtra("method", "ra")
+        intent.putExtra("storage_location", storageLocation.id)
         intent.action = "download"
         context.startService(intent)
     }

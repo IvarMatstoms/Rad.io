@@ -165,7 +165,8 @@ class BackgroundAudioService() : Service() {
 
     fun selectStation(stationId:String) {
         //
-        station= loadRaFile(this, stationId)
+        //station=loadRaFile(this, stationId)
+        station= getStationIndex().loadStation(this, stationId)
         getPlayer().station=station
         station?.queue?.fastForward()
         saveCache()
@@ -348,15 +349,7 @@ class PlayerNotification {
             notificationLayout.setImageViewResource(R.id.playerNotificationPlayPause, R.drawable.ic_play_arrow_black_24dp);
         }
 
-        //val notificationLayoutExpanded = RemoteViews(context.packageName, R.layout.notification_player)
-        //title=item
-        /*
-                        .setContentTitle(title)
-                .setContentText(text)
-                                .addAction(R.drawable.ic_pause_black_24dp, buttonText,
-                        pendingPauseIntent);
 
-         */
         mBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_radio_black_24dp)
 
@@ -365,10 +358,7 @@ class PlayerNotification {
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomContentView(notificationLayout)
                 .setContentIntent(tapPendingIntent)
-                //.setCustomBigContentView(notificationLayoutExpanded)
-                //.setContentIntent(pendingIntent)
-
-
+        
         val notificationManager = NotificationManagerCompat.from(context)
 
         notificationManager.notify(2, mBuilder!!.build())

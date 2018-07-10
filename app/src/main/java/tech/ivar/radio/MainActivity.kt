@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
 
             }
             R.id.navigation_notifications -> {
-                val songsFragment = SettingsFragment.newInstance("","")
+                val songsFragment = FindFragment.newInstance("","")
                 openFragment(songsFragment)
                 return@OnNavigationItemSelectedListener true
                 //message.setText(R.string.title_notifications)

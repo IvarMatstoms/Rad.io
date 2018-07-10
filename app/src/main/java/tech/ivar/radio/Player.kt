@@ -40,19 +40,7 @@ class Player {
 
     }
 
-    /*
-    fun prepare(context: Context) {
-        if (prepared) {
-            return
-        }
-
-    }
-    */
-
     fun play(context: Context, stationId: String) {
-        //val upcomingItem=station.queue.nextItem()
-        //val trackUri:Uri=Uri.fromFile(station.getResFile(context, upcomingItem.item.getItems()[0].fileId))
-
         val intent:Intent=Intent(context, BackgroundAudioService::class.java)
         //intent.putExtra("firstTrackUri", trackUri.toString())
         intent.putExtra("stationId", stationId)
@@ -352,7 +340,6 @@ class PlayerNotification {
 
         mBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_radio_black_24dp)
-
                 .setOngoing(ongoing)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())

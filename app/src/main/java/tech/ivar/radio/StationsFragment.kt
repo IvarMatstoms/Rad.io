@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.support.constraint.ConstraintLayout
@@ -23,8 +24,10 @@ import android.support.design.widget.BottomNavigationView
 import tech.ivar.radio.R.id.navigation
 import android.support.v4.content.LocalBroadcastManager
 import android.view.*
+import android.widget.ImageView
 import android.widget.Toast
 import org.jetbrains.anko.toast
+import java.io.File
 
 
 val STATIONS_FRAGMENT_ACTION= "tech.ivar.radio.stationsfragment.action"
@@ -256,6 +259,12 @@ class StationsListAdapter(val context: Context,private val stations: Array<Stati
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         holder.listItem.findViewById<TextView>(R.id.stationListName).text = stations[position].name
+
+        val myBitmap = BitmapFactory.decodeFile(stations[position].getThumbnailFile(context).getAbsolutePath())
+
+        holder.listItem.findViewById<ImageView>(R.id.stationsListImage).setImageBitmap(myBitmap)
+
+
         val id:String=stations[position].id
         val slp=holder.listItem.findViewById<ImageButton>(R.id.stationListPlay)
         val player= getPlayer()

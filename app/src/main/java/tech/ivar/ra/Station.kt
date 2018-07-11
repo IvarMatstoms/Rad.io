@@ -10,6 +10,8 @@ data class Station(
         val id: String,
         @com.google.gson.annotations.SerializedName("image")
         val imageFileId: String,
+        @com.google.gson.annotations.SerializedName("image_thumbnail")
+        val imageThumbnailFileId: String,
         val library: Library,
         val seed: Long,
         val name: String) {

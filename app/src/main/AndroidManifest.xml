@@ -31,6 +31,7 @@
 
         <service android:name=".BackgroundAudioService" />
         <service android:name=".DownloaderService" />
+        <service android:name=".RepoService" />
 
         <activity
             android:name=".StationsEditActivity"
@@ -39,7 +40,8 @@
         <activity
             android:name=".ImportOptionsActivity"
             android:parentActivityName=".ImportActivity" />
-        <activity android:name=".AddRepoActivity"></activity>
+        <activity android:name=".AddRepoActivity" />
+        <activity android:name=".RepoEditActivity"></activity>
     </application>
 
 </manifest>

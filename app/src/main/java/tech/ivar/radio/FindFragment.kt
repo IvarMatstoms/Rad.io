@@ -2,18 +2,22 @@ package tech.ivar.radio
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.support.constraint.ConstraintLayout
 import android.support.v4.app.Fragment
+import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
+import android.widget.Button
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import kotlinx.android.synthetic.main.fragment_find.*
 import kotlinx.android.synthetic.main.fragment_stations.*
+import java.io.File
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -42,12 +46,44 @@ class FindFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
+        setHasOptionsMenu(true);
 
 
     }
 
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        //val inflater = activity?.getMenuInflater()
+        inflater.inflate(R.menu.find_menu, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle item selection
+        return when (item.itemId) {
+            R.id.findMenuEdit -> {
+                val intent = Intent(activity, RepoEditActivity::class.java)
+                        .apply {
+
+                        }
+                startActivity(intent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         findListAdd.setOnClickListener(clickListener)
+        var viewManager = LinearLayoutManager(activity)
+
+        getRepoIndex().verifyLoaded(context!!)
+        var viewAdapter = FindListAdapter(activity as Context, getRepoIndex().getStations(context!!).toTypedArray())
+
+        var recyclerView = findListRV.apply {
+            setHasFixedSize(true)
+            layoutManager = viewManager
+            adapter = viewAdapter
+        }
         super.onViewCreated(view, savedInstanceState)
     }
 
@@ -128,8 +164,9 @@ class FindFragment : Fragment() {
                 }
     }
 }
+
 //TODO
-class FindListAdapter(val context: Context,private val stations: Array<StationReference>) :
+class FindListAdapter(val context: Context, private val stations: Array<RepoStationReference>) :
         RecyclerView.Adapter<FindListAdapter.ViewHolder>() {
 
     class ViewHolder(val listItem: ConstraintLayout) : RecyclerView.ViewHolder(listItem)
@@ -146,8 +183,29 @@ class FindListAdapter(val context: Context,private val stations: Array<StationRe
 
     // Replace the contents of a view (invoked by the layout manager)
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val station=stations[position]
+        holder.listItem.findViewById<TextView>(R.id.findListName).text = station.repoStation.name
+        holder.listItem.findViewById<TextView>(R.id.findListRepoName).text = station.repoReference.name
 
-            holder.listItem.findViewById<TextView>(R.id.findListName).text = stations[position].name
+
+        val imageFile: File = File(File(File(context.filesDir, "thumbnails"),station.repoReference.id),station.repoStation.id)
+        val myBitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath())
+
+        holder.listItem.findViewById<ImageView>(R.id.findListImage).setImageBitmap(myBitmap)
+        //findListDownloadButton
+        val clickListener = View.OnClickListener { view ->
+            val intent = Intent(context, ImportOptionsActivity::class.java)
+            val b = Bundle()
+
+            val url="${station.repoReference.url}/stations/${station.repoStation.id}/"
+            b.putString("import_type", "web") //Your id
+            b.putString("import_web_url", url) //Your id
+
+            intent.putExtras(b) //Put your id to your next Intent
+            context.startActivity(intent)
+        }
+        holder.listItem.findViewById<ImageButton>(R.id.findListDownloadButton).setOnClickListener (clickListener)
+
         /*
             val id:String=stations[position].id
             val slp=holder.listItem.findViewById<ImageButton>(R.id.stationListPlay)

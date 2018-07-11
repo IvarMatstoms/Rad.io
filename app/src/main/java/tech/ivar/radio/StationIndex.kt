@@ -358,6 +358,20 @@ class DownloaderService() : Service() {
             notificationProgress(progress)
 
         }
+        /*
+        notificationStatus("Fetching thumbnail")
+        Log.w("E","${url}image_thumbnail")
+        val (request, response, result) = ("${url}image_thumbnail").httpGet().response()
+        val thumbnailFile = File(baseDir, "thumbnail")
+        val (data, error) = result
+        if (error != null) {
+            abort("Thumbnail http error")
+            return
+        }
+        thumbnailFile.writeBytes(data!!)
+        */
+
+
         notificationStatus("Finishing up")
         //Log.w("A",files.toString())
         val getFileId: (String) -> String = { files[it]!!.id!! }
@@ -370,6 +384,7 @@ class DownloaderService() : Service() {
         fileIndexByIdFile.writeText(fileIndexByIdString)
         //val manifest: StationData=gson.fromJson(manifestString, StationData::class.java)
         manifest.image = getFileId(manifest.image)
+        manifest.imageThumbnail = getFileId(manifest.imageThumbnail)
         manifest.id = uniqueID
         manifest.library.artists.forEach({
             it.albums.forEach({
@@ -383,7 +398,7 @@ class DownloaderService() : Service() {
         manifestFile.writeText(newManifestString)
         //Log.w("M", manifest.toString())
 
-        val station = StationReference(uniqueID, manifest.name, 0)
+        val station = StationReference(uniqueID, manifest.name, 0, manifest.imageThumbnail)
         station.storageLocation=storageLocation
         getStationIndex().stations.add(station)
         getStationIndex().saveIndex(this)
@@ -439,6 +454,8 @@ class DownloaderService() : Service() {
         fileIndexByIdFile.writeText(fileIndexByIdString)
         val manifest: StationData = gson.fromJson(manifestString, StationData::class.java)
         manifest.image = getFileId(manifest.image)
+        manifest.imageThumbnail = getFileId(manifest.imageThumbnail)
+
         manifest.id = uniqueID
         manifest.library.artists.forEach({
             it.albums.forEach({
@@ -461,7 +478,7 @@ class DownloaderService() : Service() {
         //var f=File(dir, uniqueID)
         //f.writeBytes(data)
 
-        val station = StationReference(uniqueID, manifest.name, 0)
+        val station = StationReference(uniqueID, manifest.name, 0, manifest.imageThumbnail)
         station.storageLocation=storageLocation
         getStationIndex().stations.add(station)
         getStationIndex().saveIndex(this)
@@ -534,6 +551,8 @@ data class StationData(
         var seed: Long,
         var name: String,
         var image: String,
+        @com.google.gson.annotations.SerializedName("image_thumbnail")
+        var imageThumbnail: String,
         var library: Library,
         var id: String?
 
@@ -560,8 +579,14 @@ data class StationReference(
         @com.google.gson.annotations.Expose
         var name: String,
         @com.google.gson.annotations.Expose
-        var position: Int?) {
+        var position: Int?,
+        @com.google.gson.annotations.Expose
+        var imageThumbnailId: String
+        ) {
     var storageLocation:StorageInterface?=null
+    fun getThumbnailFile(context: Context):File {
+        return File(File(File(storageLocation!!.getStationsDir(context),id),"res"),imageThumbnailId)
+    }
 }
 
 

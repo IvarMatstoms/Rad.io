@@ -9,13 +9,11 @@ import android.media.MediaPlayer
 import android.content.Intent
 import android.app.Service
 import android.os.IBinder
-import android.media.MediaPlayer.OnCompletionListener
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationManagerCompat
-import tech.ivar.ra.loadRaFile
 import java.util.*
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -28,110 +26,95 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import java.io.File
 
-val PLAYER_SERVICE_ACTION= "tech.ivar.radio.playerservice.action"
+val PLAYER_SERVICE_ACTION = "tech.ivar.radio.playerservice.action"
 private const val CHANNEL_ID = "tech.ivar.radio.pchannel"
-class Player {
-    private var prepared=false
-    var station:Station?=null
-    var playing=false;
 
-    var currentProgress:Int?=null;
+class Player {
+    var station: Station? = null
+    var playing = false
+
+    var currentProgress: Int? = null
+
     init {
 
     }
 
     fun play(context: Context, stationId: String) {
-        val intent:Intent=Intent(context, BackgroundAudioService::class.java)
-        //intent.putExtra("firstTrackUri", trackUri.toString())
+        val intent = Intent(context, BackgroundAudioService::class.java)
         intent.putExtra("stationId", stationId)
-        intent.action="play"
+        intent.action = "play"
         context.startService(intent)
     }
 }
 
-var p:Player? = null;
+var p: Player? = null
 
-fun getPlayer():Player {
+fun getPlayer(): Player {
     if (p == null) {
-        p=Player()
+        p = Player()
     }
     return p!!
 }
-class BackgroundAudioService() : Service() {
+
+class BackgroundAudioService : Service() {
     //creating a mediaplayer object
-    var mPlayer: MediaPlayer? = null;
-    var station: Station? = null;
-    val notification: PlayerNotification
+    var mPlayer: MediaPlayer? = null
+    var station: Station? = null
+    val notification: PlayerNotification = PlayerNotification()
 
     override fun onBind(intent: Intent): IBinder? {
 
-        Log.w("P","BIND")
+        Log.w("P", "BIND")
         return null
     }
 
     init {
-        notification=PlayerNotification()
-        notification.create(this)
         val timer = Timer()
-        val player=getPlayer()
+        val player = getPlayer()
         timer.scheduleAtFixedRate(object : TimerTask() {
 
             override fun run() {
                 if (player.playing && mPlayer?.currentPosition != null) {
-                    player.currentProgress=mPlayer?.currentPosition
+                    player.currentProgress = mPlayer?.currentPosition
                 }
             }
 
         }, 0, 1000)
 
 
-
     }
 
     override fun onCreate() {
         super.onCreate()
+        notification.create(this)
         val intentFilter = IntentFilter()
         intentFilter.addAction(PLAYER_SERVICE_ACTION)
         this.registerReceiver(playerBroadcastReceiver, intentFilter)
 
-        if (!("player_cache.json" in fileList())) {
+        if ("player_cache.json" !in fileList()) {
             saveCache()
         }
     }
 
 
-
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        Log.w("A", intent.action)
+        when {
+            intent.action == "play" -> {
+                val stationId: String = intent.getStringExtra("stationId")
+                selectStation(stationId)
+                playTrack()
+            }
+            intent.action == "pause" -> pause()
+            intent.action == "resume" -> resume()
 
-        //getting systems default ringtone
-        Log.w("A",intent.action)
-        //getPlayer().prepare(this)
-        if (intent.action == "play") {
-
-            //mPlayer = MediaPlayer.create(this);
-            //setting loop play to true
-            //this will make the ringtone continuously playing
-            //mPlayer.setLooping(true);
-
-            //staring the mPlayer
-            val stationId:String = intent.getStringExtra("stationId")
-            selectStation(stationId)
-            playTrack()
-        } else if (intent.action=="pause") {
-            pause()
-        } else if (intent.action=="resume") {
-            resume()
         }
-
-        //we have some options for service
-        //start sticky means service will be explicity started and stopped
-        //return START_REDELIVER_INTENT;
         return START_NOT_STICKY
     }
 
     fun pause() {
         mPlayer?.pause()
-        getPlayer().playing=false
+        getPlayer().playing = false
         updateFrontends()
     }
 
@@ -151,11 +134,11 @@ class BackgroundAudioService() : Service() {
         notification.update(this)
     }
 
-    fun selectStation(stationId:String) {
+    fun selectStation(stationId: String) {
         //
         //station=loadRaFile(this, stationId)
-        station= getStationIndex().loadStation(this, stationId)
-        getPlayer().station=station
+        station = getStationIndex().loadStation(this, stationId)
+        getPlayer().station = station
         station?.queue?.fastForward()
         saveCache()
     }
@@ -163,22 +146,26 @@ class BackgroundAudioService() : Service() {
 
     private val playerBroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val status=intent.getStringExtra("status")
-            Log.w("H",status)
-            if (status=="toggle") {
+            val status = intent.getStringExtra("status")
+            Log.w("H", status)
+            if (status == "toggle") {
                 if (getPlayer().playing) {
                     pause()
                 } else {
                     resume()
                 }
-            } else if (status=="resume") {
-                    resume()
+            } else if (status == "resume") {
+                resume()
+            } else if (status == "destroy_notification") {
+                notification.destroy(context)
+
+                pause()
             }
         }
     }
 
     fun saveCache() {
-        val cacheObj=PlayerCache(station?.id)
+        val cacheObj = PlayerCache(station?.id)
         val gson = GsonBuilder().create()
         val fileContents = gson.toJson(cacheObj)
 
@@ -191,19 +178,17 @@ class BackgroundAudioService() : Service() {
         val gson = GsonBuilder().create()
         val file = openFileInput("player_cache.json")
         val cacheString = String(file.readBytes())
-        var correct:Boolean=true
-        val cacheObj:PlayerCache = gson.fromJson(cacheString, object : TypeToken<PlayerCache>() {}.type);
+        val cacheObj: PlayerCache = gson.fromJson(cacheString, object : TypeToken<PlayerCache>() {}.type)
         if (cacheObj.stationId != null) {
             selectStation(cacheObj.stationId)
         }
     }
 
 
-
-    fun createMediaPlayer(uri: Uri):MediaPlayer {
-        val p = MediaPlayer.create(this, uri);
-        p.setOnCompletionListener(OnCompletionListener {
-            Log.w("P","DONE!")
+    fun createMediaPlayer(uri: Uri): MediaPlayer {
+        val p = MediaPlayer.create(this, uri)
+        p.setOnCompletionListener({
+            Log.w("P", "DONE!")
             playNext()
         })
         return p
@@ -215,12 +200,12 @@ class BackgroundAudioService() : Service() {
     }
 
     fun playTrack() {
-        Log.w("DAB",station!!.queue.currentItem.toString())
-        val nextItem=station!!.queue.currentItem
-        val nextTrack=nextItem?.item?.getItems()!![0]
-        val fileUri:Uri?= Uri.fromFile(station?.getResFile(this, nextTrack.fileId))
+        Log.w("DAB", station!!.queue.currentItem.toString())
+        val nextItem = station!!.queue.currentItem
+        val nextTrack = nextItem?.item?.getItems()!![0]
+        val fileUri: Uri? = Uri.fromFile(station?.getResFile(this, nextTrack.fileId))
         if (mPlayer == null) {
-            mPlayer= createMediaPlayer(fileUri!!)
+            mPlayer = createMediaPlayer(fileUri!!)
 
         } else {
             mPlayer?.reset()
@@ -231,26 +216,26 @@ class BackgroundAudioService() : Service() {
         //mPlayer?.seekTo(60)
 
 
-        val offset=System.currentTimeMillis()-nextItem?.startTime*1000L
+        val offset = System.currentTimeMillis() - nextItem.startTime * 1000L
         if (offset > 0) {
-            mPlayer?.start();
+            mPlayer?.start()
             mPlayer?.seekTo(offset.toInt())
 
         } else {
             val handler = Handler()
-            handler.postDelayed(Runnable {
+            handler.postDelayed({
                 //Do something after 100ms
-                mPlayer?.start();
+                mPlayer?.start()
             }, Math.abs(offset))
         }
-        getPlayer().playing=true
+        getPlayer().playing = true
         notification.update(this)
         //mPlayer?.start();
     }
 
 
     override fun onDestroy() {
-        Log.w("P","STOP")
+        Log.w("P", "STOP")
         notification.destroy(this)
         if (mPlayer != null && mPlayer?.isPlaying!!) {
             mPlayer?.stop()
@@ -263,25 +248,28 @@ class BackgroundAudioService() : Service() {
         }
     }
 }
+
 class PlayerNotification {
-    var mBuilder: NotificationCompat.Builder?=null
-    var trackName:String=""
-    var stationName:String=""
-    var ongoing:Boolean=true
-    private var stationImage:Bitmap?=null
-    private var currentStaitonId:String?=null
+    private var mBuilder: NotificationCompat.Builder? = null
+    var trackName: String = ""
+    var stationName: String = ""
+    var ongoing: Boolean = true
+    var destroyed: Boolean = false
+    private var stationImage: Bitmap? = null
+    private var currentStaitonId: String? = null
 
     init {
 
     }
 
-    fun create(context:Context) {
+    fun create(context: Context) {
         createNotificationChannel(context)
         //update(context)
     }
 
     private fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            //Log.w("C",context.getString(R.string.finishing_up))
             val name = context.getString(R.string.pchannel_name)
             val description = context.getString(R.string.pchannel_description)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
@@ -295,18 +283,22 @@ class PlayerNotification {
     }
 
 
-
-    fun update (context: Context) {
-        val player= getPlayer()
-        val station=player.station
+    fun update(context: Context) {
+        if (!getPlayer().playing && destroyed) {
+            return
+        } else {
+            destroyed=false
+        }
+        val player = getPlayer()
+        val station = player.station
         if (station != null && currentStaitonId != station.id) {
             val imageFile: File = player.station!!.getResFile(context, player.station!!.imageFileId)
-            stationImage = BitmapFactory.decodeFile(imageFile.getAbsolutePath())
-            currentStaitonId=station.id
+            stationImage = BitmapFactory.decodeFile(imageFile.absolutePath)
+            currentStaitonId = station.id
         }
-        val item= player.station?.queue?.currentItem?.item?.getItems()?.get(0)
-        trackName=if (item!=null) {item.name} else {""}
-        stationName=if (station!=null) {station.name}else{""}
+        val item = player.station?.queue?.currentItem?.item?.getItems()?.get(0)
+        trackName = item?.name ?: ""
+        stationName = station?.name ?: ""
 
         //val intent: Intent = Intent(context, BackgroundAudioService::class.java)
         //intent.action = "pause"
@@ -314,28 +306,37 @@ class PlayerNotification {
         intent.action = PLAYER_SERVICE_ACTION
         intent.putExtra("status", "toggle")
 
-        val buttonText:String=if (player.playing) {"pause"} else {"play"}
-        //sendBroadcast(intent)
         val pendingPauseIntent = PendingIntent.getBroadcast(context, 101, intent, 0)
+
+        val destroyIntent = Intent()
+        destroyIntent.action = PLAYER_SERVICE_ACTION
+        destroyIntent.putExtra("status", "destroy_notification")
+
+        val pendingDestroyIntent = PendingIntent.getBroadcast(context, 102, destroyIntent, 0)
+
         val notificationLayout = RemoteViews(context.packageName, R.layout.notification_player)
         notificationLayout.setTextViewText(R.id.playerNotificationTrack, trackName)
         notificationLayout.setTextViewText(R.id.playerNotificationStation, stationName)
         notificationLayout.setOnClickPendingIntent(R.id.playerNotificationPlayPause, pendingPauseIntent)
+        notificationLayout.setOnClickPendingIntent(R.id.playerNotificationDestroy, pendingDestroyIntent)
+
+        //notificationLayout.setOnClickPendingIntent()
         stationImage?.let {
             notificationLayout.setImageViewBitmap(R.id.playerNotificationImage, it)
         }
 
         val tapIntent = Intent(context, MainActivity::class.java)
-        tapIntent.putExtra("status","now_playing")
+        tapIntent.putExtra("status", "now_playing")
         tapIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         //tapIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         val tapPendingIntent = PendingIntent.getActivity(context, 0, tapIntent, 0)
 
         if (player.playing) {
-            notificationLayout.setImageViewResource(R.id.playerNotificationPlayPause, R.drawable.ic_pause_black_24dp);
+            notificationLayout.setImageViewResource(R.id.playerNotificationPlayPause, R.drawable.ic_pause_black_24dp)
         } else {
-            notificationLayout.setImageViewResource(R.id.playerNotificationPlayPause, R.drawable.ic_play_arrow_black_24dp);
+            notificationLayout.setImageViewResource(R.id.playerNotificationPlayPause, R.drawable.ic_play_arrow_black_24dp)
         }
+                notificationLayout.setImageViewResource(R.id.playerNotificationDestroy, R.drawable.ic_close_black_24dp)
 
 
         mBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -345,14 +346,15 @@ class PlayerNotification {
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomContentView(notificationLayout)
                 .setContentIntent(tapPendingIntent)
-        
+
         val notificationManager = NotificationManagerCompat.from(context)
 
-        notificationManager.notify(2, mBuilder!!.build())
+        notificationManager.notify(3, mBuilder!!.build())
     }
 
     fun destroy(context: Context) {
-        NotificationManagerCompat.from(context).cancel(2)
+        destroyed=true
+        NotificationManagerCompat.from(context).cancel(3)
     }
 }
 

@@ -41,7 +41,7 @@
             android:name=".ImportOptionsActivity"
             android:parentActivityName=".ImportActivity" />
         <activity android:name=".AddRepoActivity" />
-        <activity android:name=".RepoEditActivity"></activity>
+        <activity android:name=".RepoEditActivity" />
     </application>
 
 </manifest>

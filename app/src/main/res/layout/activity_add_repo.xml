@@ -25,7 +25,7 @@
         android:layout_marginTop="8dp"
         android:ems="10"
         android:hint="@string/url_placeholder"
-        android:inputType="textPersonName"
+        android:inputType="text|textUri|textPersonName"
         app:layout_constraintBottom_toBottomOf="@+id/addRepoAdd"
         app:layout_constraintEnd_toStartOf="@+id/addRepoAdd"
         app:layout_constraintStart_toStartOf="parent"

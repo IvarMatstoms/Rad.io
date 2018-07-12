@@ -3,25 +3,24 @@ package tech.ivar.radio
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
-import android.net.Uri
 import android.os.Bundle
 import android.support.constraint.ConstraintLayout
 import android.support.v4.app.Fragment
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import java.util.*
-import android.widget.TextView
 import android.support.v7.widget.helper.ItemTouchHelper
-import android.view.MotionEvent
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.noButton
 import org.jetbrains.anko.toast
 import org.jetbrains.anko.yesButton
+import java.util.*
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -41,7 +40,7 @@ private const val ARG_PARAM2 = "param2"
 class StationsEditFragment : Fragment(), OnStartDragListener{
     private var mItemTouchHelper: ItemTouchHelper? = null
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {
-        mItemTouchHelper?.startDrag(viewHolder);
+        mItemTouchHelper?.startDrag(viewHolder)
     }
 
     // TODO: Rename and change types of parameters
@@ -66,7 +65,7 @@ class StationsEditFragment : Fragment(), OnStartDragListener{
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val adapter = RecyclerListAdapter(activity!!, this)
+        val adapter = RecyclerListAdapter(this)
 
         val recyclerView = view.findViewById(R.id.stationsEditRview) as RecyclerView
         recyclerView.setHasFixedSize(true)
@@ -83,12 +82,6 @@ class StationsEditFragment : Fragment(), OnStartDragListener{
         mItemTouchHelper = ItemTouchHelper(callback)
         mItemTouchHelper?.attachToRecyclerView(recyclerView)
     }
-
-    // TODO: Rename method, update argument and hook method into UI event
-    fun onButtonPressed(uri: Uri) {
-        listener?.onFragmentInteraction(uri)
-    }
-
 
 
     /*
@@ -118,10 +111,7 @@ class StationsEditFragment : Fragment(), OnStartDragListener{
      * (http://developer.android.com/training/basics/fragments/communicating.html)
      * for more information.
      */
-    interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        fun onFragmentInteraction(uri: Uri)
-    }
+    interface OnFragmentInteractionListener
 
     companion object {
         /**
@@ -144,7 +134,7 @@ class StationsEditFragment : Fragment(), OnStartDragListener{
     }
 }
 
-class RecyclerListAdapter(context: Context, private val mDragStartListener: OnStartDragListener) : RecyclerView.Adapter<RecyclerListAdapter.ItemViewHolder>(), ItemTouchHelperAdapter {
+class RecyclerListAdapter(private val mDragStartListener: OnStartDragListener) : RecyclerView.Adapter<RecyclerListAdapter.ItemViewHolder>(), ItemTouchHelperAdapter {
 
     private val mItems:MutableList<StationReference> = mutableListOf()
     var context: Context?=null
@@ -167,7 +157,7 @@ class RecyclerListAdapter(context: Context, private val mDragStartListener: OnSt
         holder.station=mItems[position]
 
         // Start a drag whenever the handle view it touched
-        holder.handleView.setOnTouchListener(View.OnTouchListener { v, event ->
+        holder.handleView.setOnTouchListener({ _, event ->
             //event.getAc
             if (event.action == MotionEvent.ACTION_DOWN) {
                 mDragStartListener.onStartDrag(holder)
@@ -180,13 +170,13 @@ class RecyclerListAdapter(context: Context, private val mDragStartListener: OnSt
         Log.w("R","REMOVE AT $position")
         val station:StationReference= getStationIndex().stations[position]
         if (context != null ) {
-            context?.alert("This cant be undone", "Delete ${station.name}") {
+            context?.alert(context!!.getString(R.string.cant_be_undone), context!!.getString(R.string.delete_string,station.name)) {
                 yesButton {
                     getStationIndex().deleteStationByPosition(context!!, position)
-                    context?.toast("Station deleted")
+                    context?.toast(context!!.getString(R.string.station_deleted))
                 }
                 noButton {
-                    context?.toast("Canceled")
+                    context?.toast(context!!.getString(R.string.canceled))
                     /*
                     val fragment = StationsEditFragment()
                     val fragmentTransaction = (context as StationsEditActivity).supportFragmentManager.beginTransaction()
@@ -212,14 +202,6 @@ class RecyclerListAdapter(context: Context, private val mDragStartListener: OnSt
         return true
     }
 
-    override fun getItemCount(): Int {
-        return mItems.size
-    }
-
-    /**
-     * Simple example of a view holder that implements [ItemTouchHelperViewHolder] and has a
-     * "handle" view that initiates a drag event when touched.
-     */
     class ItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView), ItemTouchHelperViewHolder {
 
         val listItem: ConstraintLayout = itemView as ConstraintLayout
@@ -228,10 +210,9 @@ class RecyclerListAdapter(context: Context, private val mDragStartListener: OnSt
 
         var station: StationReference?=null
 
-        val context=itemView.context
+        val context: Context?=itemView.context
         init {
 
-            //textView = itemView.findViewById<View>(R.id.text) as TextView
         }
 
         override fun onItemSelected() {
@@ -241,6 +222,10 @@ class RecyclerListAdapter(context: Context, private val mDragStartListener: OnSt
         override fun onItemClear() {
             itemView.setBackgroundColor(0)
         }
+    }
+
+    override fun getItemCount(): Int {
+        return mItems.size
     }
 }
 interface ItemTouchHelperAdapter {
@@ -269,14 +254,14 @@ class SimpleItemTouchHelperCallback(private val mAdapter: ItemTouchHelperAdapter
 
     override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder,
                         target: RecyclerView.ViewHolder): Boolean {
-        val context=recyclerView.context
+        recyclerView.context
         //Log.w("M",viewHolder.getAdapterPosition().toString()+"|"+target.getAdapterPosition().toString())
-        mAdapter.onItemMove(viewHolder.getAdapterPosition(), target.getAdapterPosition())
+        mAdapter.onItemMove(viewHolder.adapterPosition, target.adapterPosition)
         return true
     }
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-        mAdapter.onItemDismiss(viewHolder.getAdapterPosition())
+        mAdapter.onItemDismiss(viewHolder.adapterPosition)
     }
 
 }

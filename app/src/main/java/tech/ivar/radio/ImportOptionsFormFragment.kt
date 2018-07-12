@@ -16,6 +16,7 @@ import android.widget.Spinner
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
 import android.content.Intent
+import android.widget.AdapterView.INVISIBLE
 import android.widget.RadioButton
 import kotlinx.android.synthetic.main.fragment_import_options_form.*
 
@@ -43,6 +44,8 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
     private var downloadOptionsList: List<DownloadOption>? = null
     private var selectedDownloadOption: DownloadOption? = null
     private var url: String?=null
+    private var downloadType: DownloadType?=null
+    //private var enum
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,36 +65,49 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        url=param2
         param1?.let {
             parseSwsManifest(it)
             createForm()
         } ?: run {
             context?.toast("error?")
         }
-        url=param2
+
         importOptionsFormOkButton.setOnClickListener(clickListener)
     }
 
     fun createForm() {
 
-        (activity as ImportOptionsActivity).supportActionBar?.title=swsManifest!!.name
 
-        importOptionsFormName.text=swsManifest!!.name
 
-        val spinner = activity?.findViewById(R.id.importOptionsFormMethodSpinner) as Spinner
-        val adapter = ArrayAdapter<String>(context, android.R.layout.simple_spinner_item)
-        downloadOptionsList = swsManifest!!.DownloadOptions.values.toList().sortedBy { if(it.methodId=="folder") 0 else 1 }
-        adapter.addAll(downloadOptionsList!!.mapIndexed { index:Int, downloadOption ->
-            val extraString=if(index==0){"(Recommended)"} else {""}
-            "${downloadOption.name}(${downloadOption.methodObject!!.downloadMethodName})$extraString"
-        }.toMutableList())
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.onItemSelectedListener = this;
+        if (downloadType==DownloadType.SWS) {
+            (activity as ImportOptionsActivity).supportActionBar?.title=swsManifest!!.name
+            importOptionsFormName.text=swsManifest!!.name
 
-// Apply the adapter to the spinner
-        spinner.adapter = adapter
-        getStationIndex().storageLocations.forEach({id, storageLocation ->
-            val radioButton = (activity?.findViewById<View>(getResources().getIdentifier(storageLocation.radioButtonId, "id", context!!.getPackageName())) as RadioButton)
+            val spinner = activity?.findViewById(R.id.importOptionsFormMethodSpinner) as Spinner
+            val adapter = ArrayAdapter<String>(context, android.R.layout.simple_spinner_item)
+            downloadOptionsList = swsManifest!!.DownloadOptions.values.toList().sortedBy { if (it.methodId == "folder") 0 else 1 }
+            adapter.addAll(downloadOptionsList!!.mapIndexed { index: Int, downloadOption ->
+                val extraString = if (index == 0) {
+                    "(Recommended)"
+                } else {
+                    ""
+                }
+                "${downloadOption.name}(${downloadOption.methodObject!!.downloadMethodName})$extraString"
+            }.toMutableList())
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            spinner.onItemSelectedListener = this
+
+            spinner.adapter = adapter
+        } else {
+            importOptionsFormMethodSpinner.visibility= View.INVISIBLE
+            val name=context!!.getString(R.string.unknown_station)
+            (activity as ImportOptionsActivity).supportActionBar?.title=name
+            importOptionsFormName.text=name
+
+        }
+        getStationIndex().storageLocations.forEach({ _, storageLocation ->
+            val radioButton = (activity?.findViewById<View>(resources.getIdentifier(storageLocation.radioButtonId, "id", context!!.packageName)) as RadioButton)
             radioButton.text=storageLocation.name
             radioButton.isEnabled=storageLocation.isAvailable()
             radioButton.isChecked= storageLocation.isDefault
@@ -100,20 +116,22 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
     }
 
     fun parseSwsManifest(swsManifestString: String) {
+        if(swsManifestString == "RA") {
+            downloadType=DownloadType.RA
+            return
+        }
+        downloadType=DownloadType.SWS
         val gson = GsonBuilder().create()
-        swsManifest = gson.fromJson(swsManifestString, object : TypeToken<SwsManifest>() {}.type);
+        swsManifest = gson.fromJson(swsManifestString, object : TypeToken<SwsManifest>() {}.type)
         swsManifest!!.DownloadOptions.forEach({
-            key, value ->
-            Log.w("a", value.name)
+            _, value ->
             value.methodObject= downloadMethodsLookup.get(value.methodId)
 
         })
-        Log.w("M", swsManifest.toString())
     }
 
 
     override fun onItemSelected(parent: AdapterView<*>, view: View, pos: Int, id: Long) {
-        Log.w("P", "Spinner selected $pos")
         selectedDownloadOption = downloadOptionsList!![pos]
     }
 
@@ -126,26 +144,25 @@ class ImportOptionsFormFragment : Fragment(), OnItemSelectedListener {
 
         when (view.id) {
             R.id.importOptionsFormOkButton -> {
-                selectedDownloadOption?.let {
-                    val baseUrl=url+it.fileName
-                    val selectedId = importOptionsFormStorageGroup.getCheckedRadioButtonId()
-                    val storageLocation= getStationIndex().storageLocations.filterValues { getResources().getIdentifier(it.radioButtonId, "id", context!!.getPackageName())==selectedId }.values.toList()[0]
-                    it.methodObject!!.downloadFromUrl(context!!, baseUrl, storageLocation)
+                if (downloadType == DownloadType.SWS) {
+                    selectedDownloadOption?.let {
+                        val baseUrl = url + it.fileName
+                        val selectedId = importOptionsFormStorageGroup.checkedRadioButtonId
+                        val storageLocation = getStationIndex().storageLocations.filterValues { resources.getIdentifier(it.radioButtonId, "id", context!!.packageName) == selectedId }.values.toList()[0]
+                        it.methodObject!!.downloadFromUrl(context!!, baseUrl, storageLocation)
+                        val intent = Intent(activity, MainActivity::class.java)
+                        startActivity(intent)
+                    }
+                } else if (downloadType==DownloadType.RA) {
+                    val selectedId = importOptionsFormStorageGroup.checkedRadioButtonId
+                    val storageLocation = getStationIndex().storageLocations.filterValues { resources.getIdentifier(it.radioButtonId, "id", context!!.packageName) == selectedId }.values.toList()[0]
+                    downloadMethodsLookup["ra"]!!.downloadFromUrl(context!!, url!!, storageLocation)
                     val intent = Intent(activity, MainActivity::class.java)
-                            .apply {
-
-                            }
                     startActivity(intent)
                 }
             }
         }
     }
-
-    // TODO: Rename method, update argument and hook method into UI event
-    fun onButtonPressed(uri: Uri) {
-        listener?.onFragmentInteraction(uri)
-    }
-
 
     /*
     override fun onAttach(context: Context) {
@@ -237,7 +254,7 @@ class DownloadMethodRaArchive : DownloadMethod {
         get() = "Radio Archive"
 }
 
-val downloadMethodsLookup = mapOf<String, DownloadMethod>("ra" to DownloadMethodRaArchive(), "folder" to DownloadMethodFolder())
+val downloadMethodsLookup = mapOf("ra" to DownloadMethodRaArchive(), "folder" to DownloadMethodFolder())
 
 data class SwsManifest(
         val name: String,
@@ -273,4 +290,9 @@ enum class DownloadMethods(val method: String) {
     RA("ra"),
     RA_GZ("ra.gz"),
     FOLDER("folder")
+}
+
+enum class DownloadType {
+    RA,
+    SWS
 }

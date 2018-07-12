@@ -38,7 +38,7 @@ class StationIndex {
 
     }
 
-    fun updateIndexVersionId() {
+    private fun updateIndexVersionId() {
         indexVersionId++
     }
 
@@ -46,7 +46,7 @@ class StationIndex {
         storageLocations=listOf(StorageInternal(),StorageExternal()).filter { it.isAvailable() }.associateBy { it.id }
         stations= mutableListOf()
         storageLocations.forEach {
-            id, storageLocation ->
+            _, storageLocation ->
             loadIndex(context,storageLocation)
         }
 
@@ -70,11 +70,9 @@ class StationIndex {
     fun loadIndex(context: Context, storageLocation: StorageInterface) {
         val file:File=storageLocation.getIndexFile(context)
         if (!file.exists()) {
-            //saveIndex(context)
             createIndex(file)
         }
         val gson = GsonBuilder().create()
-        //val file = context.openFileInput("index.json")
         val stationsString = String(file.readBytes())
         val storageStations:List<StationReference> = gson.fromJson(stationsString, object : TypeToken<List<StationReference>>() {}.type)
         storageStations.forEach({
@@ -85,7 +83,7 @@ class StationIndex {
 
     }
 
-    fun createIndex(file:File) {
+    private fun createIndex(file:File) {
         file.writeText("[]")
     }
 
@@ -148,10 +146,10 @@ class StationIndex {
         //val base_dir = context.getDir("stations", Context.MODE_PRIVATE)
         val baseDir=stationReference.storageLocation!!.getStationsDir(context)
         val dir = File(baseDir, id)
-        val manifestFile: File = File(dir, "manifest.json")
+        val manifestFile = File(dir, "manifest.json")
         val manifestString = String(manifestFile.readBytes())
         val gson = GsonBuilder().create()
-        val station: Station = gson.fromJson(manifestString, object : TypeToken<Station>() {}.type);
+        val station: Station = gson.fromJson(manifestString, object : TypeToken<Station>() {}.type)
         Log.w("R", station.toString())
         val queueItems: MutableList<QueueItem> = mutableListOf()
         station.library.updateReferences()
@@ -166,26 +164,11 @@ class StationIndex {
         return station
     }
 
-    fun fromUrl(context: Context, url: String) {
-        val intent: Intent = Intent(context, DownloaderService::class.java)
-        //intent.putExtra("firstTrackUri", trackUri.toString())
-        intent.putExtra("url", url)
-        intent.action = "download"
-        context.startService(intent)
-    }
-
-    fun downloadFolder() {
-
-    }
-
-
-
 
 }
 
-class DownloaderService() : Service() {
-    var mBuilder: NotificationCompat.Builder? = null;
-    var notification: DownloadNotification?=null;
+class DownloaderService : Service() {
+    var notification: DownloadNotification?=null
     override fun onBind(p0: Intent?): IBinder? {
         Log.w("P", "BIND")
         return null
@@ -236,12 +219,14 @@ class DownloaderService() : Service() {
 
     fun downloadRa(url: String, storageLocation: StorageInterface) {
         notificationCreate()
-
-        url.httpGet().response { request, response, result ->
+        notificationProgress(-1)
+        url.httpGet().response { _, _, result ->
 
             val (bytes, error) = result
             if (bytes != null) {
                 //println(bytes)
+                notificationRemoveProgress()
+                notificationStatus(getString(R.string.parsing_and_copy))
                 addStationRa(bytes, storageLocation)
                 notificationDone()
             } else {
@@ -254,14 +239,14 @@ class DownloaderService() : Service() {
     fun notificationCreate() {
         notification= DownloadNotification()
         notification!!.create(this)
-        notification?.text="Downloading station"
+        notification?.text=getString(R.string.downloading_station)
         notification?.update(this)
 
     }
 
     fun notificationDone () {
         notification?.showProgress=false
-        notification?.text="Download complete"
+        notification?.text=getString(R.string.download_complete)
         notification?.ongoing=false
         notification?.update(this)
 
@@ -270,10 +255,15 @@ class DownloaderService() : Service() {
     fun notificationProgress (progress:Int){
         notification?.progress=progress
         notification?.update(this)
-
     }
+
+    fun notificationRemoveProgress (){
+        notification?.showProgress=false
+        notification?.update(this)
+    }
+
     fun notificationStatus (status:String){
-        notification?.text="Downloading station: $status"
+        notification?.text=getString(R.string.downloading_station)+": "+status
         notification?.update(this)
 
     }
@@ -290,7 +280,7 @@ class DownloaderService() : Service() {
     fun downloadFolder(url_: String, storageLocation: StorageInterface) {
         fun getTextFile(url: String): String? {
 
-            val (request, response, result) = url.httpGet().responseString()
+            val (_, _, result) = url.httpGet().responseString()
             val (data, error) = result
             return if (error == null) {
                 data
@@ -301,12 +291,12 @@ class DownloaderService() : Service() {
 
         fun abort(error: String) {
             notificationDone()
-            notificationText("Download failed: $error")
+            notificationText(getString(R.string.download_failed)+": $error")
             broadcastUpdate("download_failed")
         }
 
         val uniqueID = UUID.randomUUID().toString()
-        val baseDir = storageLocation!!.getStationsDir(this)
+        val baseDir = storageLocation.getStationsDir(this)
 
         //val baseDir = this.getDir("stations", Context.MODE_PRIVATE)
 
@@ -315,42 +305,41 @@ class DownloaderService() : Service() {
         val url: String = if (url_.endsWith("/")) {
             url_
         } else {
-            url_ + "/"
+            "$url_/"
         }
         val manifestString = getTextFile(url + "manifest.json")
         if (manifestString == null) {
-            abort("http error")
+            abort(getString(R.string.http_error))
             return
         }
-        notificationStatus("Downloading file index")
+        notificationStatus(getString(R.string.downloading_station_file_index))
         val fileIndexString = getTextFile(url + "file_index.json")
         if (fileIndexString == null) {
-            abort("http error")
+            abort(getString(R.string.http_error))
             return
         }
-        notificationStatus("Parsing")
+        notificationStatus(getString(R.string.parsing))
         val gson = GsonBuilder().create()
         val manifest: StationData = gson.fromJson(manifestString, StationData::class.java)
         Log.w("M", fileIndexString)
-        val files: Map<String, FolderFile> = gson.fromJson(fileIndexString, object : TypeToken<Map<String, FolderFile>>() {}.type);
+        val files: Map<String, FolderFile> = gson.fromJson(fileIndexString, object : TypeToken<Map<String, FolderFile>>() {}.type)
 
         val dir = File(baseDir, uniqueID)
         dir.mkdir()
         val resDir = File(dir, "res")
         resDir.mkdir()
         val filesSize = files.size
-        val progress = 0
         files.values.forEachIndexed { index, archiveFile ->
 
-            notificationStatus("Downloading file (${index+1}/${filesSize})")
-            val (request, response, result) = ("${url}files/${archiveFile.key}").httpGet().response()
+            notificationStatus(getString(R.string.downloading_file)+" (${index+1}/$filesSize)")
+            val (_, _, result) = ("${url}files/${archiveFile.key}").httpGet().response()
             val (data, error) = result
             if (error != null) {
-                abort("http error")
+                abort(getString(R.string.http_error))
                 return
             }
             val fileId: String = UUID.randomUUID().toString()
-            val file: File = File(resDir, fileId)
+            val file = File(resDir, fileId)
             file.writeBytes(data!!)
             archiveFile.id = fileId
             //archiveFile.key="ABC"
@@ -358,31 +347,16 @@ class DownloaderService() : Service() {
             notificationProgress(progress)
 
         }
-        /*
-        notificationStatus("Fetching thumbnail")
-        Log.w("E","${url}image_thumbnail")
-        val (request, response, result) = ("${url}image_thumbnail").httpGet().response()
-        val thumbnailFile = File(baseDir, "thumbnail")
-        val (data, error) = result
-        if (error != null) {
-            abort("Thumbnail http error")
-            return
-        }
-        thumbnailFile.writeBytes(data!!)
-        */
 
-
-        notificationStatus("Finishing up")
-        //Log.w("A",files.toString())
+        notificationStatus(getString(R.string.finishing_up))
         val getFileId: (String) -> String = { files[it]!!.id!! }
 
         val fileIndexById: Map<String, FolderFile> = files.values.map { it.id!! to it }.toMap()
         val fileIndexByIdString: String = gson.toJson(fileIndexById)
 
-        val fileIndexByIdFile: File = File(dir, "file_index.json")
+        val fileIndexByIdFile = File(dir, "file_index.json")
 
         fileIndexByIdFile.writeText(fileIndexByIdString)
-        //val manifest: StationData=gson.fromJson(manifestString, StationData::class.java)
         manifest.image = getFileId(manifest.image)
         manifest.imageThumbnail = getFileId(manifest.imageThumbnail)
         manifest.id = uniqueID
@@ -394,9 +368,8 @@ class DownloaderService() : Service() {
             })
         })
         val newManifestString: String = gson.toJson(manifest)
-        val manifestFile: File = File(dir, "manifest.json")
+        val manifestFile = File(dir, "manifest.json")
         manifestFile.writeText(newManifestString)
-        //Log.w("M", manifest.toString())
 
         val station = StationReference(uniqueID, manifest.name, 0, manifest.imageThumbnail)
         station.storageLocation=storageLocation
@@ -417,19 +390,19 @@ class DownloaderService() : Service() {
                 } shl (3 - index) * 8)
             }.sum()
         }
-        val baseDir = storageLocation!!.getStationsDir(this)
+        val baseDir = storageLocation.getStationsDir(this)
 
-        var uniqueID = UUID.randomUUID().toString()
+        val uniqueID = UUID.randomUUID().toString()
         val gson = GsonBuilder().create()
         //val directory = context.filesDir.mkdir()
-        var offset: Int = 0
-        var manifestSize: Int = bytesToInt(data.copyOfRange(offset, offset + 4))
+        var offset = 0
+        val manifestSize: Int = bytesToInt(data.copyOfRange(offset, offset + 4))
         offset += 4
-        var manifestString = String(data.copyOfRange(offset, offset + manifestSize))
+        val manifestString = String(data.copyOfRange(offset, offset + manifestSize))
         offset += manifestSize
-        var fileIndexSize: Int = bytesToInt(data.copyOfRange(offset, offset + 4))
+        val fileIndexSize: Int = bytesToInt(data.copyOfRange(offset, offset + 4))
         offset += 4
-        var fileIndex = String(data.copyOfRange(offset, offset + fileIndexSize))
+        val fileIndex = String(data.copyOfRange(offset, offset + fileIndexSize))
         offset += fileIndexSize
         //var base_dir = this.getDir("stations", Context.MODE_PRIVATE)
         Log.w("B", fileIndexSize.toString())
@@ -439,18 +412,18 @@ class DownloaderService() : Service() {
         dir.mkdir()
         val resDir = File(dir, "res")
         resDir.mkdir()
-        var files: Map<String, ArchiveFile> = gson.fromJson(fileIndex, object : TypeToken<Map<String, ArchiveFile>>() {}.type);
+        val files: Map<String, ArchiveFile> = gson.fromJson(fileIndex, object : TypeToken<Map<String, ArchiveFile>>() {}.type)
         files.values.forEach {
             Log.w("A", it.toString())
             val fileId: String = UUID.randomUUID().toString()
-            val file: File = File(resDir, fileId)
+            val file = File(resDir, fileId)
             file.writeBytes(data.copyOfRange(offset + it.startByte, offset + it.startByte + it.size))
             it.id = fileId
         }
-        val getFileId: (String) -> String = { files.get(it)!!.id!! }
+        val getFileId: (String) -> String = { files[it]!!.id!! }
         val fileIndexById: Map<String, ArchiveFile> = files.values.map { it.id!! to it }.toMap()
         val fileIndexByIdString: String = gson.toJson(fileIndexById)
-        val fileIndexByIdFile: File = File(dir, "file_index.json")
+        val fileIndexByIdFile = File(dir, "file_index.json")
         fileIndexByIdFile.writeText(fileIndexByIdString)
         val manifest: StationData = gson.fromJson(manifestString, StationData::class.java)
         manifest.image = getFileId(manifest.image)
@@ -465,7 +438,7 @@ class DownloaderService() : Service() {
             })
         })
         val newManifestString: String = gson.toJson(manifest)
-        val manifestFile: File = File(dir, "manifest.json")
+        val manifestFile = File(dir, "manifest.json")
         manifestFile.writeText(newManifestString)
         Log.w("S", manifest.toString())
 
@@ -487,7 +460,7 @@ class DownloaderService() : Service() {
 }
 
 class DownloadNotification {
-    var mBuilder: NotificationCompat.Builder?=null
+    private var mBuilder: NotificationCompat.Builder?=null
 
     var text:String=""
     var ongoing:Boolean=true
@@ -521,7 +494,7 @@ class DownloadNotification {
     }
 
     fun create(context: Context) {
-        text="Downloading station"
+        text=context.getString(R.string.downloading_station)
         ongoing=true
         _progress=0
         showProgress=false
@@ -537,7 +510,12 @@ class DownloadNotification {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         if (showProgress) {
             //Log.w("P",progress.toString())
-            mBuilder?.setProgress(100, progress, false)
+            if (progress != -1) {
+                mBuilder?.setProgress(100, progress, false)
+            } else {
+                mBuilder?.setProgress(100, 0, true)
+
+            }
         }
         val notificationManager = NotificationManagerCompat.from(context)
 
@@ -611,7 +589,7 @@ data class ArchiveFile(var key: String,
 
 }
 
-private var stationIndex: StationIndex? = null;
+private var stationIndex: StationIndex? = null
 fun getStationIndex(): StationIndex {
     if (stationIndex == null) {
         stationIndex = StationIndex()

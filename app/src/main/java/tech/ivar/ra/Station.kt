@@ -16,7 +16,7 @@ data class Station(
         val seed: Long,
         val name: String) {
     var randomGen: RandomGen
-    lateinit var queue:Queue;
+    lateinit var queue:Queue
     private var storageLocation:StorageInterface? = null
     init {
         randomGen = RandomGen(seed)
@@ -25,10 +25,6 @@ data class Station(
 
     fun setStorageLocation(storageLocation_: StorageInterface) {
         storageLocation=storageLocation_
-    }
-
-    fun fastForward() {
-
     }
 
     fun getResFile(context: Context, fileId:String):File {

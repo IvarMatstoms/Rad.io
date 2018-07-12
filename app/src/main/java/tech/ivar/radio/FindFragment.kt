@@ -3,7 +3,6 @@ package tech.ivar.radio
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Bundle
 import android.support.constraint.ConstraintLayout
 import android.support.v4.app.Fragment
@@ -11,12 +10,12 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.*
-import android.widget.Button
+import android.view.inputmethod.EditorInfo
+import android.widget.Filter
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import kotlinx.android.synthetic.main.fragment_find.*
-import kotlinx.android.synthetic.main.fragment_stations.*
 import java.io.File
 
 
@@ -39,6 +38,7 @@ class FindFragment : Fragment() {
     private var param1: String? = null
     private var param2: String? = null
     private var listener: OnFragmentInteractionListener? = null
+    private lateinit var viewAdapter: FindListAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,7 +46,7 @@ class FindFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
-        setHasOptionsMenu(true);
+        setHasOptionsMenu(true)
 
 
     }
@@ -74,16 +74,27 @@ class FindFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         findListAdd.setOnClickListener(clickListener)
-        var viewManager = LinearLayoutManager(activity)
+        findSearchButton.setOnClickListener(clickListener)
+
+        val viewManager = LinearLayoutManager(activity)
 
         getRepoIndex().verifyLoaded(context!!)
-        var viewAdapter = FindListAdapter(activity as Context, getRepoIndex().getStations(context!!).toTypedArray())
-
-        var recyclerView = findListRV.apply {
+        viewAdapter = FindListAdapter(activity as Context, getRepoIndex().getStations(context!!).sortedBy { it.repoStation.name }.toTypedArray())
+        findListRV.apply {
             setHasFixedSize(true)
             layoutManager = viewManager
             adapter = viewAdapter
         }
+
+        findSearchText.setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val text=findSearchText.text.toString()
+                viewAdapter.getFilter().filter(text)
+                return@OnEditorActionListener true
+            }
+            false
+        })
+
         super.onViewCreated(view, savedInstanceState)
     }
 
@@ -91,11 +102,6 @@ class FindFragment : Fragment() {
                               savedInstanceState: Bundle?): View? {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_find, container, false)
-    }
-
-    // TODO: Rename method, update argument and hook method into UI event
-    fun onButtonPressed(uri: Uri) {
-        listener?.onFragmentInteraction(uri)
     }
 
     val clickListener = View.OnClickListener { view ->
@@ -108,20 +114,13 @@ class FindFragment : Fragment() {
                         }
                 startActivity(intent)
             }
+            R.id.findSearchButton -> {
+                val text=findSearchText.text.toString()
+                viewAdapter.getFilter().filter(text)
+            }
         }
 
     }
-
-    /*
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        if (context is OnFragmentInteractionListener) {
-            listener = context
-        } else {
-            throw RuntimeException(context.toString() + " must implement OnFragmentInteractionListener")
-        }
-    }
-    */
 
     override fun onDetach() {
         super.onDetach()
@@ -139,10 +138,7 @@ class FindFragment : Fragment() {
      * (http://developer.android.com/training/basics/fragments/communicating.html)
      * for more information.
      */
-    interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        fun onFragmentInteraction(uri: Uri)
-    }
+    interface OnFragmentInteractionListener
 
     companion object {
         /**
@@ -169,6 +165,8 @@ class FindFragment : Fragment() {
 class FindListAdapter(val context: Context, private val stations: Array<RepoStationReference>) :
         RecyclerView.Adapter<FindListAdapter.ViewHolder>() {
 
+    private var stationsFiltered: List<RepoStationReference> = stations.toList()
+
     class ViewHolder(val listItem: ConstraintLayout) : RecyclerView.ViewHolder(listItem)
 
 
@@ -183,17 +181,19 @@ class FindListAdapter(val context: Context, private val stations: Array<RepoStat
 
     // Replace the contents of a view (invoked by the layout manager)
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val station=stations[position]
+        val station=stationsFiltered[position]
         holder.listItem.findViewById<TextView>(R.id.findListName).text = station.repoStation.name
         holder.listItem.findViewById<TextView>(R.id.findListRepoName).text = station.repoReference.name
 
 
-        val imageFile: File = File(File(File(context.filesDir, "thumbnails"),station.repoReference.id),station.repoStation.id)
-        val myBitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath())
+        val imageFile = File(File(File(context.filesDir, "thumbnails"),station.repoReference.id),station.repoStation.id)
+        if (imageFile.exists()) {
+            val myBitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
 
-        holder.listItem.findViewById<ImageView>(R.id.findListImage).setImageBitmap(myBitmap)
+            holder.listItem.findViewById<ImageView>(R.id.findListImage).setImageBitmap(myBitmap)
+        }
         //findListDownloadButton
-        val clickListener = View.OnClickListener { view ->
+        val clickListener = View.OnClickListener {
             val intent = Intent(context, ImportOptionsActivity::class.java)
             val b = Bundle()
 
@@ -206,45 +206,32 @@ class FindListAdapter(val context: Context, private val stations: Array<RepoStat
         }
         holder.listItem.findViewById<ImageButton>(R.id.findListDownloadButton).setOnClickListener (clickListener)
 
-        /*
-            val id:String=stations[position].id
-            val slp=holder.listItem.findViewById<ImageButton>(R.id.stationListPlay)
-            val player= getPlayer()
-            var currentPlaying=false
-            if (player.playing) {
-                if (stations[position].id == player.station?.id) {
-                    slp.setImageResource(R.drawable.ic_pause_black_24dp);
-                    currentPlaying=true
-                }
-            }
-            val clickListener = OnClickListener {view ->
-                when (view.id) {
-                    R.id.stationListPlay -> {
-                        val p= getPlayer()
-                        if (!currentPlaying || !p.playing) {
-                            getPlayer().play(context, id)
-                            val fragment = NowPlayingFragment()
-                            val fragmentTransaction = (context as MainActivity).getSupportFragmentManager().beginTransaction()
-                            fragmentTransaction.replace(R.id.fragmentContainer, fragment)
-                            fragmentTransaction.addToBackStack(null)
-                            fragmentTransaction.commit()
-                            val bottomNavigationView: BottomNavigationView = (context as MainActivity).findViewById(navigation) as BottomNavigationView
-                            bottomNavigationView.selectedItemId = R.id.navigation_dashboard
-                        } else {
-                            val intent: Intent = Intent(context, BackgroundAudioService::class.java)
-                            intent.action = "pause"
-                            context?.startService(intent)
-                            slp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
-                        }
-                    }
+    }
+
+    fun getFilter(): Filter {
+        return object : Filter() {
+            override fun performFiltering(charSequence: CharSequence): FilterResults {
+                val charString = charSequence.toString()
+                stationsFiltered = if (charString.isEmpty()) {
+                    stations.sortedBy { it.repoStation.name }.toList()
+                } else {
+                    stations.filter {
+                        it.repoStation.name.toLowerCase().contains(charSequence.toString().toLowerCase())
+                    }.sortedBy { it.repoStation.name }.toList()
                 }
 
+                val filterResults = FilterResults()
+                filterResults.values = stationsFiltered
+                return filterResults
             }
-            holder.listItem.findViewById<ImageButton>(R.id.stationListPlay).setOnClickListener (clickListener)
-            */
 
+            override fun publishResults(charSequence: CharSequence, filterResults: FilterResults) {
+                stationsFiltered = filterResults.values as List<RepoStationReference>
+                notifyDataSetChanged()
+            }
+        }
     }
 
     // Return the size of your dataset (invoked by the layout manager)
-    override fun getItemCount() = stations.size
+    override fun getItemCount() = stationsFiltered.size
 }

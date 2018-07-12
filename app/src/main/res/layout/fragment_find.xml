@@ -9,6 +9,19 @@
 
     <!-- TODO: Update blank fragment layout -->
 
+    <EditText
+        android:id="@+id/findSearchText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:ems="10"
+        android:hint="@string/station_find_search"
+        android:inputType="textPersonName"
+        android:singleLine="true"
+        app:layout_constraintEnd_toStartOf="@+id/findSearchButton"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/findListAdd"
         android:layout_width="wrap_content"
@@ -16,6 +29,7 @@
         android:layout_marginBottom="16dp"
         android:layout_marginEnd="16dp"
         android:clickable="true"
+        android:focusable="true"
         android:src="@drawable/ic_add_black_24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -25,11 +39,21 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginBottom="8dp"
+        android:layout_marginTop="4dp"
         app:layout_constraintBottom_toTopOf="@+id/findListAdd"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@+id/findSearchButton">
 
     </android.support.v7.widget.RecyclerView>
+
+    <Button
+        android:id="@+id/findSearchButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:text="@string/search"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

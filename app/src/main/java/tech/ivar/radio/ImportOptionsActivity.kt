@@ -1,12 +1,10 @@
 package tech.ivar.radio
 
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import com.github.kittinunf.fuel.httpGet
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 
 class ImportOptionsActivity : AppCompatActivity() {
 
@@ -15,16 +13,20 @@ class ImportOptionsActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_import_options)
 
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+
         val loadingFragment = ImportOptionsLoadingFragment.newInstance("","")
         openFragment(loadingFragment)
 
         val extras = intent.extras!!
         val url:String=extras.getString("import_web_url")
-        Log.w("U",url)
-        downloadSwsManifest(url)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowHomeEnabled(true)
-        /*
+        if(url.endsWith(".ra")) {
+            val optionsFragment = ImportOptionsFormFragment.newInstance("RA",url)
+            openFragment(optionsFragment)
+        }else {
+            downloadSwsManifest(url)
+        } /*
         var value = -1 // or other values
         if (b != null)
             value = b.getInt("key")
@@ -32,7 +34,9 @@ class ImportOptionsActivity : AppCompatActivity() {
     }
 
     fun downloadSwsManifest(url_: String) {
-        val url:String=if(url_.endsWith("/")) {url_} else {url_+"/"}
+        val url:String=if(url_.endsWith("/")) {url_} else {
+            "$url_/"
+        }
 
         (url+"sws.json").httpGet().responseString { _, _, result ->
 

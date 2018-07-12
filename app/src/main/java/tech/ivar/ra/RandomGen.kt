@@ -1,6 +1,5 @@
 package tech.ivar.ra
 
-import android.util.Log
 import kotlin.math.pow
 
 class RandomGen(seed:Long) {

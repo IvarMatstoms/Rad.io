@@ -21,8 +21,7 @@ data class Artist(
         val name: String,
         val id: String,
         val albums: List<Album>
-) {
-}
+)
 
 data class Album(
         val name: String,

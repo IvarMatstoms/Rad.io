@@ -1,5 +1,6 @@
 package tech.ivar.radio
 
+import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -25,7 +26,7 @@ class AddRepoActivity : AppCompatActivity() {
         when (view.id) {
             R.id.addRepoAdd -> {
                 Log.w("C","CLICK")
-                var url:String=AddRepoUrl.text.toString()
+                val url:String=AddRepoUrl.text.toString()
                 addRepo(url)
             }
         }
@@ -34,7 +35,9 @@ class AddRepoActivity : AppCompatActivity() {
 
     fun addRepo(url_:String) {
         buttonState(false)
-        val url:String=if(url_.endsWith("/")) {url_} else {url_+"/"}
+        val url:String=if(url_.endsWith("/")) {url_} else {
+            "$url_/"
+        }
         (url+"repo.json").httpGet().responseString { _, _, result ->
 
             val (text, error) = result
@@ -48,6 +51,11 @@ class AddRepoActivity : AppCompatActivity() {
             alert(repoFileData.text,"Add \"${repoFileData.name}\"") {
                 yesButton {
                     getRepoIndex().addRepo(this@AddRepoActivity, url, repoFileData)
+                    val intent = Intent(this@AddRepoActivity, MainActivity::class.java)
+                            .apply {
+
+                            }
+                    startActivity(intent)
                 }
                 noButton {buttonState(true)}
             }.show()

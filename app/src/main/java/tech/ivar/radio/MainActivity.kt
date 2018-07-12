@@ -99,13 +99,13 @@ class MainActivity : AppCompatActivity() {
 
     public override fun onSaveInstanceState(savedInstanceState: Bundle) {
         super.onSaveInstanceState(savedInstanceState)
-        savedInstanceState.putInt("SelectedItemId", navigation.getSelectedItemId())
+        savedInstanceState.putInt("SelectedItemId", navigation.selectedItemId)
     }
 
     public override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         val selectedItemId = savedInstanceState.getInt("SelectedItemId")
-        navigation.setSelectedItemId(selectedItemId)
+        navigation.selectedItemId = selectedItemId
     }
 
     override fun onDestroy() {

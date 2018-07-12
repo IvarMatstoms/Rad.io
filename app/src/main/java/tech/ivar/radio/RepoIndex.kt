@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
-import android.provider.MediaStore
 import android.util.Log
 import com.github.kittinunf.fuel.httpGet
 import com.google.gson.GsonBuilder
@@ -15,10 +14,11 @@ import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
+
 private val ID_REGEX="[^A-Za-z0-9\\-_,]".toRegex()
 
 class RepoIndex {
-    var repos: MutableList<RepoReference> = mutableListOf();
+    var repos: MutableList<RepoReference> = mutableListOf()
     var repoById: Map<String, RepoReference> = mapOf()
     var loaded: Boolean = false
     fun loadIndex(context: Context) {
@@ -111,7 +111,7 @@ class RepoIndex {
     }
 }
 
-private var _repoIndex: RepoIndex? = null;
+private var _repoIndex: RepoIndex? = null
 fun getRepoIndex(): RepoIndex {
     if (_repoIndex == null) {
         _repoIndex = RepoIndex()
@@ -126,18 +126,16 @@ data class RepoReference(
         val url: String
 )
 
-data class RepoFileData(val name: String, val text: String) {
+data class RepoFileData(val name: String, val text: String)
 
-}
-
-data class RepoStation(val name: String, val id: String) {}
+data class RepoStation(val name: String, val id: String)
 
 data class RepoStationReference(val repoReference: RepoReference, val repoStation: RepoStation)
 
-class RepoService() : Service() {
+class RepoService : Service() {
     val thumbnailDownloadQueue: MutableList<RepoStationReference> = mutableListOf()
-    var thumbnailDownloadThreadRunning = false;
-    var thumbnailDownloadThreadLock: Lock = ReentrantLock();
+    var thumbnailDownloadThreadRunning = false
+    var thumbnailDownloadThreadLock: Lock = ReentrantLock()
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         if (intent.action == "refresh") {
             val repoId: String = intent.getStringExtra("repo_id")
@@ -158,14 +156,14 @@ class RepoService() : Service() {
         val url: String = if (url_.endsWith("/")) {
             url_
         } else {
-            url_ + "/"
+            "$url_/"
         }
 
         (url + "manifest.json").httpGet().responseString { _, _, result ->
 
             val (text, error) = result
             if (text != null) {
-                addRepoIndexData(repo!!, text)
+                addRepoIndexData(repo, text)
             } else {
                 Log.w("W", error.toString())
             }
@@ -219,7 +217,7 @@ class RepoService() : Service() {
                 if (file.exists()) {
                     continue
                 }
-                val (request, response, result) = ("${currentTarget.repoReference.url}/stations/${currentTarget.repoStation.id}/image_thumbnail").httpGet().response()
+                val (_, _, result) = ("${currentTarget.repoReference.url}/stations/${currentTarget.repoStation.id}/image_thumbnail").httpGet().response()
                 val (data, error) = result
                 if (error != null) {
                     continue

@@ -1,30 +1,19 @@
 package tech.ivar.radio
 
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
 import android.support.v4.app.Fragment
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import kotlinx.android.synthetic.main.fragment_import_web.*
 import kotlinx.android.synthetic.main.fragment_now_playing.*
 import tech.ivar.ra.Station
-import android.graphics.BitmapFactory
-import android.graphics.Bitmap
-import android.os.Handler
-import android.os.Message
-import android.widget.ImageButton
 import tech.ivar.ra.UpcomingItem
 import java.io.File
-import java.util.*
-import java.lang.Compiler.command
-import java.util.concurrent.*
-import javax.xml.datatype.DatatypeConstants.SECONDS
 
 //val NOWPLAYING_FRAGMENT_ACTION = "tech.ivar.radio.nowplayingfragment.action"
 // TODO: Rename parameter arguments, choose names that match
@@ -75,7 +64,7 @@ class NowPlayingFragment : Fragment() {
 
             context?.let {
                 val imageFile: File = station.getResFile(it, station.imageFileId)
-                val myBitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath())
+                val myBitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
 
                 val myImage = nowPlayingImage
 
@@ -128,7 +117,7 @@ class NowPlayingFragment : Fragment() {
                         nowPlayingStation.text = player.station!!.name
                         currentStation = player.station
                         val imageFile: File = player.station!!.getResFile(it, player.station!!.imageFileId)
-                        val myBitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath())
+                        val myBitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
 
                         val myImage = nowPlayingImage
 
@@ -148,12 +137,12 @@ class NowPlayingFragment : Fragment() {
     fun updatePlayPause() {
         val pp = playerPause
         pp?.let {
-            if (getPlayer().playing) {
-                it.setImageResource(R.drawable.ic_pause_black_24dp);
-                currentPlayingState = true
+            currentPlayingState = if (getPlayer().playing) {
+                it.setImageResource(R.drawable.ic_pause_black_24dp)
+                true
             } else {
-                it.setImageResource(R.drawable.ic_play_arrow_black_24dp);
-                currentPlayingState = false
+                it.setImageResource(R.drawable.ic_play_arrow_black_24dp)
+                false
             }
         }
     }
@@ -168,12 +157,12 @@ class NowPlayingFragment : Fragment() {
                     val intent: Intent = Intent(context, BackgroundAudioService::class.java)
                     intent.action = "pause"
                     context?.startService(intent)
-                    pp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
+                    pp.setImageResource(R.drawable.ic_play_arrow_black_24dp)
                 } else {
                     val intent: Intent = Intent(context, BackgroundAudioService::class.java)
                     intent.action = "resume"
                     context?.startService(intent)
-                    pp.setImageResource(R.drawable.ic_pause_black_24dp);
+                    pp.setImageResource(R.drawable.ic_pause_black_24dp)
                 }
             }
         }

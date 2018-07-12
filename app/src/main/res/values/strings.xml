@@ -24,7 +24,33 @@
 
     <string name="pchannel_name">Rad.io player</string>
     <string name="pchannel_description">Rad.io player notifications</string>
+
     <string name="menu_edit">Edit</string>
+    <string name="search">search</string>
+    <string name="dynamic_default">N/A</string>
+    <string name="station_thumbnail">Station thumbnail</string>
+    <string name="download_button">Download button</string>
+    <string name="station_find_search">Station search</string>
+    <string name="unavailable">Unavailable</string>
+    <string name="add_button">add</string>
+    <string name="now_playing_image">Now playing image</string>
+    <string name="play_pause_button">Play pause button</string>
+    <string name="reorder_image">Reorder image</string>
+    <string name="cant_be_undone">This can not be undone</string>
+    <string name="delete_string">delete \"%s\"</string>
+    <string name="downloading_station">Downloading station</string>
+    <string name="download_complete">Download complete</string>
+    <string name="download_failed">Download failed</string>
+    <string name="http_error">Http error</string>
+    <string name="downloading_station_file_index">Downloading file index</string>
+    <string name="parsing">Parsing</string>
+    <string name="downloading_file">Downloading file</string>
+    <string name="finishing_up">Finishing up</string>
+    <string name="station_deleted">Station deleted</string>
+    <string name="canceled">canceled</string>
+    <string name="item_will_disappear">Item will disappear on exit</string>
+    <string name="unknown_station">Unknown station</string>
+    <string name="parsing_and_copy">Parsing and copying</string>
 
 
 </resources>

@@ -2,7 +2,6 @@ package tech.ivar.radio
 
 import android.content.Context
 import android.os.Environment
-import android.util.Log
 import java.io.File
 
 interface StorageInterface {
@@ -77,9 +76,8 @@ class StorageExternal : StorageInterface {
                 Environment.DIRECTORY_DOCUMENTS), "rad.io")
         //val file=File(Environment.getExternalStorageDirectory(), "rad.io")
         file.mkdirs()
-        val indexFile = File(file,"index.json")
         //Log.w("D",indexFile.toURI().toString())
-        return indexFile
+        return File(file,"index.json")
     }
 
     override val name: String

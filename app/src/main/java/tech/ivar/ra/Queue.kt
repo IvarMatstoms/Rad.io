@@ -1,7 +1,5 @@
 package tech.ivar.ra
 
-import android.util.Log
-
 class Queue(var randomGen: RandomGen, val items: MutableList<QueueItem>, val startTime: Int) {
     var currentItem:UpcomingItem?=null
     var currentIndex:Int?=null
@@ -15,11 +13,7 @@ class Queue(var randomGen: RandomGen, val items: MutableList<QueueItem>, val sta
 
     fun fastForward(inputTime: Int?=null) {
 
-        var time:Int = if (inputTime == null) {
-            (System.currentTimeMillis() / 1000L).toInt();
-        } else {
-            inputTime
-        }
+        var time:Int = inputTime ?: (System.currentTimeMillis() / 1000L).toInt()
         if (currentItem != null) {
             if (currentItem!!.endTime > time) {
                 return
@@ -54,7 +48,7 @@ class Queue(var randomGen: RandomGen, val items: MutableList<QueueItem>, val sta
         return self.current_item
         * */
         val randomNum=randomGen.next()
-        var newIndex=-1
+        var newIndex: Int
         if (allowRepeat || currentIndex==null || size==1){
             newIndex=(randomNum*size).toInt()
         } else {

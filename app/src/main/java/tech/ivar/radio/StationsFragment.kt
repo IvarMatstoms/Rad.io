@@ -1,7 +1,5 @@
 package tech.ivar.radio
 
-import android.app.Activity
-import android.app.PendingIntent.getActivity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -10,7 +8,6 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.support.constraint.ConstraintLayout
-import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -19,15 +16,10 @@ import android.view.View.OnClickListener
 import android.widget.ImageButton
 import android.widget.TextView
 import kotlinx.android.synthetic.main.fragment_stations.*
-import tech.ivar.ra.loadRaFile
 import android.support.design.widget.BottomNavigationView
 import tech.ivar.radio.R.id.navigation
-import android.support.v4.content.LocalBroadcastManager
 import android.view.*
 import android.widget.ImageView
-import android.widget.Toast
-import org.jetbrains.anko.toast
-import java.io.File
 
 
 val STATIONS_FRAGMENT_ACTION= "tech.ivar.radio.stationsfragment.action"
@@ -53,7 +45,7 @@ class StationsFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var viewAdapter: RecyclerView.Adapter<*>
     private lateinit var viewManager: RecyclerView.LayoutManager
-    private var currentStationsIndexVersionId: Int?=null;
+    private var currentStationsIndexVersionId: Int?=null
     override fun onCreate(savedInstanceState: Bundle?) {
         //Log.d("V",toString(R.id.fabImport))
         super.onCreate(savedInstanceState)
@@ -64,7 +56,7 @@ class StationsFragment : Fragment() {
         val intentFilter = IntentFilter()
         intentFilter.addAction(STATIONS_FRAGMENT_ACTION)
         activity?.registerReceiver(stationsBroadcastReceiver, intentFilter)
-        setHasOptionsMenu(true);
+        setHasOptionsMenu(true)
     }
 
 
@@ -110,7 +102,7 @@ class StationsFragment : Fragment() {
         Log.w("S",getStationIndex().stations.map { it.name }.toString())
         var viewAdapter = StationsListAdapter(activity as Context,getStationIndex().stations.toTypedArray())
 
-        var recyclerView = stationsList.apply {
+        stationsList.apply {
             setHasFixedSize(true)
             // use a linear layout manager
             layoutManager = viewManager
@@ -126,8 +118,7 @@ class StationsFragment : Fragment() {
                               savedInstanceState: Bundle?): View? {
         // Inflate the layout for this fragment
 
-        val v = inflater.inflate(R.layout.fragment_stations, container, false)
-        return v
+        return inflater.inflate(R.layout.fragment_stations, container, false)
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -188,7 +179,7 @@ class StationsFragment : Fragment() {
             Log.w("H","CAAAAALLING")
             if (status=="reload") {
                 val fragment = StationsFragment()
-                val fragmentTransaction = (context as MainActivity).getSupportFragmentManager().beginTransaction()
+                val fragmentTransaction = (context as MainActivity).supportFragmentManager.beginTransaction()
                 fragmentTransaction.replace(R.id.fragmentContainer, fragment)
                 fragmentTransaction.addToBackStack(null)
                 fragmentTransaction.commit()
@@ -260,7 +251,7 @@ class StationsListAdapter(val context: Context,private val stations: Array<Stati
         // - replace the contents of the view with that element
         holder.listItem.findViewById<TextView>(R.id.stationListName).text = stations[position].name
 
-        val myBitmap = BitmapFactory.decodeFile(stations[position].getThumbnailFile(context).getAbsolutePath())
+        val myBitmap = BitmapFactory.decodeFile(stations[position].getThumbnailFile(context).absolutePath)
 
         holder.listItem.findViewById<ImageView>(R.id.stationsListImage).setImageBitmap(myBitmap)
 
@@ -271,7 +262,7 @@ class StationsListAdapter(val context: Context,private val stations: Array<Stati
         var currentPlaying=false
         if (player.playing) {
             if (stations[position].id == player.station?.id) {
-                slp.setImageResource(R.drawable.ic_pause_black_24dp);
+                slp.setImageResource(R.drawable.ic_pause_black_24dp)
                 currentPlaying=true
             }
         }
@@ -282,17 +273,17 @@ class StationsListAdapter(val context: Context,private val stations: Array<Stati
                     if (!currentPlaying || !p.playing) {
                         getPlayer().play(context, id)
                         val fragment = NowPlayingFragment()
-                        val fragmentTransaction = (context as MainActivity).getSupportFragmentManager().beginTransaction()
+                        val fragmentTransaction = (context as MainActivity).supportFragmentManager.beginTransaction()
                         fragmentTransaction.replace(R.id.fragmentContainer, fragment)
                         fragmentTransaction.addToBackStack(null)
                         fragmentTransaction.commit()
-                        val bottomNavigationView: BottomNavigationView = (context as MainActivity).findViewById(navigation) as BottomNavigationView
+                        val bottomNavigationView: BottomNavigationView = context.findViewById(navigation) as BottomNavigationView
                         bottomNavigationView.selectedItemId = R.id.navigation_dashboard
                     } else {
                         val intent: Intent = Intent(context, BackgroundAudioService::class.java)
                         intent.action = "pause"
-                        context?.startService(intent)
-                        slp.setImageResource(R.drawable.ic_play_arrow_black_24dp);
+                        context.startService(intent)
+                        slp.setImageResource(R.drawable.ic_play_arrow_black_24dp)
                     }
                 }
             }

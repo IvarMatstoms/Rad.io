@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity() {
     private fun openFragment(fragment: Fragment) {
         val transaction = supportFragmentManager.beginTransaction()
         transaction.replace(R.id.fragmentContainer, fragment)
-        transaction.addToBackStack(null)
+        //transaction.addToBackStack(null)
         transaction.commit()
     }
 
@@ -85,7 +85,12 @@ class MainActivity : AppCompatActivity() {
 
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
         val songsFragment = StationsFragment.newInstance("","")
-        openFragment(songsFragment)
+        //openFragment(songsFragment)
+
+        val transaction = supportFragmentManager.beginTransaction()
+        transaction.replace(R.id.fragmentContainer, songsFragment)
+        transaction.addToBackStack(null)
+        transaction.commit()
 
         val intentFilter = IntentFilter()
         intentFilter.addAction(MAIN_ACTIVITY_ACTION)

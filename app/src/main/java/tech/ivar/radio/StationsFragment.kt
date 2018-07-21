@@ -275,7 +275,7 @@ class StationsListAdapter(val context: Context,private val stations: Array<Stati
                         val fragment = NowPlayingFragment()
                         val fragmentTransaction = (context as MainActivity).supportFragmentManager.beginTransaction()
                         fragmentTransaction.replace(R.id.fragmentContainer, fragment)
-                        fragmentTransaction.addToBackStack(null)
+                        //fragmentTransaction.addToBackStack(null)
                         fragmentTransaction.commit()
                         val bottomNavigationView: BottomNavigationView = context.findViewById(navigation) as BottomNavigationView
                         bottomNavigationView.selectedItemId = R.id.navigation_dashboard

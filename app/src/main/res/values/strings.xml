@@ -51,6 +51,11 @@
     <string name="item_will_disappear">Item will disappear on exit</string>
     <string name="unknown_station">Unknown station</string>
     <string name="parsing_and_copy">Parsing and copying</string>
+    <string name="menu_refresh">Refresh</string>
+    <string name="rchannel_name">Repo channel</string>
+    <string name="rchannel_description">Repo update notification</string>
+    <string name="updateing_repos">Updating repos</string>
+    <string name="updateing_repos_done">Repos updated</string>
 
 
 </resources>

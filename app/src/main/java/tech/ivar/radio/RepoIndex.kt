@@ -1,9 +1,14 @@
 package tech.ivar.radio
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
+import android.support.v4.app.NotificationCompat
+import android.support.v4.app.NotificationManagerCompat
 import android.util.Log
 import com.github.kittinunf.fuel.httpGet
 import com.google.gson.GsonBuilder
@@ -16,6 +21,8 @@ import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
 
 private val ID_REGEX="[^A-Za-z0-9\\-_,]".toRegex()
+private const val CHANNEL_ID = "tech.ivar.radio.rchannel"
+
 
 class RepoIndex {
     var repos: MutableList<RepoReference> = mutableListOf()
@@ -134,14 +141,22 @@ data class RepoStationReference(val repoReference: RepoReference, val repoStatio
 
 class RepoService : Service() {
     val thumbnailDownloadQueue: MutableList<RepoStationReference> = mutableListOf()
+    val repoRefreshQueue: MutableList<String> = mutableListOf()
     var thumbnailDownloadThreadRunning = false
+    var repoRefreshThreadRunning = false
+
     var thumbnailDownloadThreadLock: Lock = ReentrantLock()
+    var repoRefreshThreadLock: Lock = ReentrantLock()
+
+    var repoRefreshNotification: RepoNotification?=null
+
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         if (intent.action == "refresh") {
             val repoId: String = intent.getStringExtra("repo_id")
             refresh(repoId)
         } else if (intent.action == "refresh-all") {
-
+            getRepoIndex().verifyLoaded(this)
+            refreshRepos(getRepoIndex().repos.map { it.id })
         }
         return START_NOT_STICKY
     }
@@ -169,6 +184,8 @@ class RepoService : Service() {
             }
         }
     }
+
+
     fun addRepoIndexData(repo: RepoReference, data: String) {
 
         val gson = GsonBuilder().create()
@@ -195,6 +212,18 @@ class RepoService : Service() {
         }
     }
 
+    fun refreshRepos(repos: Collection<String>) {
+        if (repoRefreshThreadRunning) {
+            repoRefreshThreadLock.withLock {
+                repoRefreshQueue.addAll(repos)
+            }
+        } else {
+            repoRefreshQueue.addAll(repos)
+            startRepoRefreshThread()
+        }
+    }
+
+
     fun startDownloadThread() {
         thread {
             thumbnailDownloadThreadRunning = true
@@ -204,6 +233,7 @@ class RepoService : Service() {
             while(true) {
                 thumbnailDownloadThreadLock.lock()
                 if (thumbnailDownloadQueue.size==0) {
+                    thumbnailDownloadThreadLock.unlock()
                     break
                 }
                 val currentTarget=thumbnailDownloadQueue[0]
@@ -229,9 +259,107 @@ class RepoService : Service() {
         }
     }
 
+    fun startRepoRefreshThread() {
+        thread {
+            repoRefreshThreadRunning = true
+            repoRefreshNotification= RepoNotification()
+            repoRefreshNotification?.create(this)
+            repoRefreshNotification?.text=getString(R.string.updateing_repos)
+            repoRefreshNotification?.progress=-1
+            repoRefreshNotification?.update(this)
+
+            while(true) {
+                repoRefreshThreadLock.lock()
+                if (repoRefreshQueue.size==0) {
+                    repoRefreshThreadLock.unlock()
+                    break
+                }
+                val currentTarget=repoRefreshQueue[0]
+                repoRefreshQueue.remove(currentTarget)
+
+                refresh(currentTarget)
+
+                repoRefreshThreadLock.unlock()
+
+            }
+            repoRefreshNotification?.text=getString(R.string.updateing_repos_done)
+            repoRefreshNotification?.showProgress=false
+            repoRefreshNotification?.ongoing=false
+            repoRefreshNotification?.update(this)
+
+
+            repoRefreshThreadRunning = false
+
+        }
+    }
+
     override fun onBind(p0: Intent?): IBinder? {
         Log.w("P", "BIND")
         return null
     }
 
+}
+
+class RepoNotification {
+    private var mBuilder: NotificationCompat.Builder?=null
+
+    var text:String=""
+    var ongoing:Boolean=true
+    private var _progress:Int=0
+    var showProgress:Boolean=false
+
+    init{
+
+
+    }
+
+    private fun createNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = context.getString(R.string.rchannel_name)
+            val description = context.getString(R.string.rchannel_description)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(CHANNEL_ID, name, importance)
+            channel.description = description
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            notificationManager!!.createNotificationChannel(channel)
+        }
+    }
+
+    var progress: Int
+        get() =_progress
+        set(value) {
+            _progress=value
+            showProgress=true
+        }
+
+    fun create(context: Context) {
+        text=context.getString(R.string.downloading_station)
+        ongoing=true
+        _progress=0
+        showProgress=false
+        createNotificationChannel(context)
+    }
+
+
+    fun update (context: Context) {
+        mBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_play_arrow_black_24dp)
+                .setContentTitle(text)
+                .setOngoing(ongoing)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        if (showProgress) {
+            //Log.w("P",progress.toString())
+            if (progress != -1) {
+                mBuilder?.setProgress(100, progress, false)
+            } else {
+                mBuilder?.setProgress(100, 0, true)
+
+            }
+        }
+        val notificationManager = NotificationManagerCompat.from(context)
+
+        notificationManager.notify(1, mBuilder!!.build())
+    }
 }

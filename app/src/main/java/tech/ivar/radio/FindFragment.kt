@@ -68,7 +68,14 @@ class FindFragment : Fragment() {
                 startActivity(intent)
                 true
             }
-            else -> super.onOptionsItemSelected(item)
+            R.id.findMenuRefresh -> {
+                val intent: Intent = Intent(context, RepoService::class.java)
+                //intent.putExtra("firstTrackUri", trackUri.toString())
+                intent.action = "refresh-all"
+                context!!.startService(intent)
+                true
+            }
+                else -> super.onOptionsItemSelected(item)
         }
     }
 
@@ -235,3 +242,5 @@ class FindListAdapter(val context: Context, private val stations: Array<RepoStat
     // Return the size of your dataset (invoked by the layout manager)
     override fun getItemCount() = stationsFiltered.size
 }
+
+
